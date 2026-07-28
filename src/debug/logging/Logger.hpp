@@ -1,13 +1,16 @@
 #ifndef DEBUG_LOGGING_LOGGER_HPP_
 #define DEBUG_LOGGING_LOGGER_HPP_
 
+#include <format>
 #include <string>
 #include <utility>
 
 #include "Log.hpp"
+#include "LoggerConfig.hpp"
 
 class Logger {
   std::string loggerName;
+  LoggerConfig cfg;
 
   Log createLog(LogLevel level, const std::string& message) const;
 
@@ -15,11 +18,29 @@ class Logger {
   void log(LogLevel level, const std::string& message, Args&&... args);
 
 public:
-  explicit Logger(const std::string& _loggerName);
+  explicit Logger(std::string _loggerName, LoggerConfig _cfg);
+
+  template<typename... Args>
+  void debug(const std::string& msg, Args&&... args);
 
   template<typename... Args>
   void info(const std::string& msg, Args&&... args);
+
+  template<typename... Args>
+  void warning(const std::string& msg, Args&&... args);
+
+  template<typename... Args>
+  void error(const std::string& msg, Args&&... args);
+
+  template<typename... Args>
+  void fatal(const std::string& msg, Args&&... args);
 };
+
+template<typename... Args>
+void Logger::debug(const std::string& message, Args&&... args)
+{
+  log(LogLevel::Debug, message, std::forward<Args>(args)...);
+}
 
 template<typename... Args>
 void Logger::info(const std::string& msg, Args&&... args)
@@ -28,12 +49,34 @@ void Logger::info(const std::string& msg, Args&&... args)
 }
 
 template<typename... Args>
+void Logger::warning(const std::string& message, Args&&... args)
+{
+  log(LogLevel::Warning, message, std::forward<Args>(args)...);
+}
+
+template<typename... Args>
+void Logger::error(const std::string& message, Args&&... args)
+{
+  log(LogLevel::Error, message, std::forward<Args>(args)...);
+}
+
+template<typename... Args>
+void Logger::fatal(const std::string& message, Args&&... args)
+{
+  log(LogLevel::Fatal, message, std::forward<Args>(args)...);
+}
+
+template<typename... Args>
 void Logger::log(LogLevel level, const std::string& message, Args&&... args)
 {
-  Log entry = createLog(level, message);
+  std::string completedMessage = std::vformat(message, std::make_format_args(args...));
+  Log entry = createLog(level, completedMessage);
 
-  (void)entry;
-  (void)sizeof...(args);
+  for (const auto& middleware : cfg.middlewares) {
+    if (!middleware)
+      continue;
+    middleware->log(entry);
+  }
 }
 
 #endif // DEBUG_LOGGING_LOGGER_HPP_
