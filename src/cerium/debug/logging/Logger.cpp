@@ -1,4 +1,5 @@
 #include "Logger.hpp"
+#include "../../time/Clock.hpp"
 
 Logger::Logger(std::string _loggerName, LoggerConfig _cfg)
   : loggerName(std::move(_loggerName))
@@ -9,7 +10,7 @@ Logger::Logger(std::string _loggerName, LoggerConfig _cfg)
 Log Logger::createLog(LogLevel level, const std::string& message) const
 {
   return { .name = loggerName,
-    .time = "00:00", // TODO get real time
+    .time = Clock::getFormattedCurrentTime(),
     .level = level,
     .message = message };
 }

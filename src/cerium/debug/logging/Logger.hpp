@@ -27,7 +27,7 @@ public:
   void info(const std::string& msg, Args&&... args);
 
   template<typename... Args>
-  void warning(const std::string& msg, Args&&... args);
+  void warn(const std::string& msg, Args&&... args);
 
   template<typename... Args>
   void error(const std::string& msg, Args&&... args);
@@ -49,9 +49,9 @@ void Logger::info(const std::string& msg, Args&&... args)
 }
 
 template<typename... Args>
-void Logger::warning(const std::string& message, Args&&... args)
+void Logger::warn(const std::string& message, Args&&... args)
 {
-  log(LogLevel::Warning, message, std::forward<Args>(args)...);
+  log(LogLevel::Warn, message, std::forward<Args>(args)...);
 }
 
 template<typename... Args>

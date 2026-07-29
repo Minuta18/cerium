@@ -2,6 +2,7 @@
 #define CERIUM_DEBUG_LOGGING_LOG_HPP_
 
 #include "LogLevel.hpp"
+
 #include <string>
 
 struct Log {
