@@ -1,5 +1,5 @@
-#ifndef DEBUG_LOGGING_LOGGERCONFIG_HPP_
-#define DEBUG_LOGGING_LOGGERCONFIG_HPP_
+#ifndef CERIUM_DEBUG_LOGGING_LOGGERCONFIG_HPP_
+#define CERIUM_DEBUG_LOGGING_LOGGERCONFIG_HPP_
 
 #include <memory>
 #include <vector>
@@ -10,4 +10,4 @@ struct LoggerConfig {
   std::vector<std::shared_ptr<LoggerMiddleware>> middlewares;
 };
 
-#endif // !DEBUG_LOGGING_LOGGERCONFIG_HPP_
+#endif // CERIUM_DEBUG_LOGGING_LOGGERCONFIG_HPP_

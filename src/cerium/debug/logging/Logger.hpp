@@ -1,5 +1,5 @@
-#ifndef DEBUG_LOGGING_LOGGER_HPP_
-#define DEBUG_LOGGING_LOGGER_HPP_
+#ifndef CERIUM_DEBUG_LOGGING_LOGGER_HPP_
+#define CERIUM_DEBUG_LOGGING_LOGGER_HPP_
 
 #include <format>
 #include <string>
@@ -79,4 +79,4 @@ void Logger::log(LogLevel level, const std::string& message, Args&&... args)
   }
 }
 
-#endif // DEBUG_LOGGING_LOGGER_HPP_
+#endif // CERIUM_DEBUG_LOGGING_LOGGER_HPP_

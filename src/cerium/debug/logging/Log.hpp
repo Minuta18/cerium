@@ -1,5 +1,5 @@
-#ifndef DEBUG_LOGGING_LOG_HPP_
-#define DEBUG_LOGGING_LOG_HPP_
+#ifndef CERIUM_DEBUG_LOGGING_LOG_HPP_
+#define CERIUM_DEBUG_LOGGING_LOG_HPP_
 
 #include "LogLevel.hpp"
 #include <string>
@@ -11,4 +11,4 @@ struct Log {
   std::string message;
 };
 
-#endif // DEBUG_LOGGING_LOG_HPP_
+#endif // CERIUM_DEBUG_LOGGING_LOG_HPP_
