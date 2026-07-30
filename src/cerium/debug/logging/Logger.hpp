@@ -21,19 +21,19 @@ public:
   explicit Logger(std::string _loggerName, LoggerConfig _cfg);
 
   template<typename... Args>
-  void debug(const std::string& msg, Args&&... args);
+  void debug(const std::string& message, Args&&... args);
 
   template<typename... Args>
-  void info(const std::string& msg, Args&&... args);
+  void info(const std::string& message, Args&&... args);
 
   template<typename... Args>
-  void warn(const std::string& msg, Args&&... args);
+  void warn(const std::string& message, Args&&... args);
 
   template<typename... Args>
-  void error(const std::string& msg, Args&&... args);
+  void error(const std::string& message, Args&&... args);
 
   template<typename... Args>
-  void fatal(const std::string& msg, Args&&... args);
+  void fatal(const std::string& message, Args&&... args);
 };
 
 template<typename... Args>
@@ -43,9 +43,9 @@ void Logger::debug(const std::string& message, Args&&... args)
 }
 
 template<typename... Args>
-void Logger::info(const std::string& msg, Args&&... args)
+void Logger::info(const std::string& message, Args&&... args)
 {
-  log(LogLevel::Info, msg, std::forward<Args>(args)...);
+  log(LogLevel::Info, message, std::forward<Args>(args)...);
 }
 
 template<typename... Args>
