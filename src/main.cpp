@@ -2,7 +2,7 @@
 #include "cerium/debug/logging/FileLoggerMiddleware.hpp"
 #include "cerium/debug/logging/Logger.hpp"
 #include "cerium/debug/logging/LoggerConfig.hpp"
-#include "cerium/project/project.hpp"
+#include "cerium/project/application.hpp"
 
 #include <filesystem>
 #include <memory>
@@ -29,7 +29,8 @@ int main() {
 
     try {
         Project project;
-        project.run();
+        Application app(project);
+        app.run();
     } catch (std::exception& e) {
         std::cerr << "Fatal exception: " << e.what() << std::endl;
     }
