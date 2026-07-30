@@ -4,12 +4,12 @@
 #include "Log.hpp"
 
 class LoggerMiddleware {
-  public:
+public:
     virtual ~LoggerMiddleware() = default;
 
     virtual void log(const Log& log) = 0;
 
-  protected:
+protected:
     std::string formatLog(const Log& log);
 };
 

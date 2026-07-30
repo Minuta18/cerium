@@ -17,7 +17,7 @@ class Logger {
     template <typename... Args>
     void log(LogLevel level, const std::string& message, Args&&... args);
 
-  public:
+public:
     explicit Logger(std::string _loggerName, LoggerConfig _cfg);
 
     template <typename... Args> void debug(const std::string& message, Args&&... args);

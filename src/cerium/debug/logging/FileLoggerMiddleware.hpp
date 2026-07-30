@@ -10,7 +10,7 @@
 class FileLoggerMiddleware : public LoggerMiddleware {
     std::shared_ptr<std::ofstream> file;
 
-  public:
+public:
     explicit FileLoggerMiddleware(std::filesystem::path path);
 
     void log(const Log& log) override;

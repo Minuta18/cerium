@@ -4,7 +4,7 @@
 #include <string>
 
 class Clock {
-  public:
+public:
     static std::string getFormattedCurrentTime();
 };
 

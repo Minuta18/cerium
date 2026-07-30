@@ -4,7 +4,7 @@
 #include "LoggerMiddleware.hpp"
 
 class ConsoleLoggerMiddleware : public LoggerMiddleware {
-  public:
+public:
     explicit ConsoleLoggerMiddleware() = default;
 
     void log(const Log& log) override;

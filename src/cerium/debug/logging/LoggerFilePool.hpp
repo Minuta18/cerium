@@ -9,7 +9,7 @@
 class LoggerFilePool {
     static std::unordered_map<std::filesystem::path, std::shared_ptr<std::ofstream>> files;
 
-  public:
+public:
     static std::shared_ptr<std::ofstream> getFile(const std::filesystem::path& path);
 };
 
