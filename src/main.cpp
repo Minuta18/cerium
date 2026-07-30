@@ -2,9 +2,11 @@
 #include "cerium/debug/logging/FileLoggerMiddleware.hpp"
 #include "cerium/debug/logging/Logger.hpp"
 #include "cerium/debug/logging/LoggerConfig.hpp"
+#include "cerium/project/project.hpp"
 
 #include <filesystem>
 #include <memory>
+#include <iostream>
 
 int main() {
     auto consoleLogger = std::make_shared<ConsoleLoggerMiddleware>();
@@ -24,6 +26,14 @@ int main() {
     logger.debug("This won't be in the logs.");
     logger.info("Test: {}", 57);
     logger.error("Error");
+
+    try {
+        Project project;
+        project.run();
+    } catch (std::exception& e) {
+        std::cerr << "Fatal exception: " << e.what() << std::endl;
+    }
+
 
     return 0;
 }
