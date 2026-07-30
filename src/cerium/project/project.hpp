@@ -1,10 +1,9 @@
-#ifndef PROJECT_H
-#define PROJECT_H
+#ifndef CERIUM_PROJECT_PROJECT_HPP_
+#define CERIUM_PROJECT_PROJECT_HPP_
 
 class Project {
 public:
     Project();
-    void run();
 };
 
-#endif //PROJECT_H
+#endif #CERIUM_PROJECT_PROJECT_HPP_

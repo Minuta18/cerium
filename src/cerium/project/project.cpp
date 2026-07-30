@@ -1,4 +1,4 @@
-#include "project.hpp"
+
 
 class Project {
 public:
@@ -6,7 +6,4 @@ public:
 
     }
 
-    void run() {
-
-    }
 };
