@@ -6,22 +6,21 @@
 #include <filesystem>
 #include <memory>
 
-int main()
-{
-  auto consoleLogger = std::make_shared<ConsoleLoggerMiddleware>();
-  auto fileLogger = std::make_shared<FileLoggerMiddleware>(std::filesystem::path("log.txt"));
+int main() {
+    auto consoleLogger = std::make_shared<ConsoleLoggerMiddleware>();
 
-  LoggerConfig cfg;
-  cfg.middlewares.push_back(consoleLogger);
-  cfg.middlewares.push_back(fileLogger);
+    auto fileLogger1 = std::make_shared<FileLoggerMiddleware>(std::filesystem::path("log.txt"));
 
-  Logger logger("Renderer", std::move(cfg));
+    auto fileLogger2 = std::make_shared<FileLoggerMiddleware>(std::filesystem::path("log.txt"));
 
-  logger.debug("Test: {}", 57);
-  logger.info("Info");
-  logger.warn("Warn");
-  logger.error("Error");
-  logger.fatal("Fatal");
+    LoggerConfig cfg;
+    cfg.middlewares.push_back(consoleLogger);
+    cfg.middlewares.push_back(fileLogger1);
+    cfg.middlewares.push_back(fileLogger2);
 
-  return 0;
+    Logger logger("cerium.main", std::move(cfg));
+
+    logger.debug("Test: {}", 57);
+
+    return 0;
 }

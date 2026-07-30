@@ -7,7 +7,7 @@
 #include "LoggerMiddleware.hpp"
 
 struct LoggerConfig {
-  std::vector<std::shared_ptr<LoggerMiddleware>> middlewares;
+    std::vector<std::shared_ptr<LoggerMiddleware>> middlewares;
 };
 
 #endif // CERIUM_DEBUG_LOGGING_LOGGERCONFIG_HPP_

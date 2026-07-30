@@ -6,10 +6,10 @@
 #include <string>
 
 struct Log {
-  std::string name;
-  std::string time;
-  LogLevel level;
-  std::string message;
+    std::string name;
+    std::string time;
+    LogLevel level;
+    std::string message;
 };
 
 #endif // CERIUM_DEBUG_LOGGING_LOG_HPP_

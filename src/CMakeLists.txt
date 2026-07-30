@@ -8,8 +8,8 @@ target_sources(CeriumApp
         cerium/debug/logging/LoggerMiddleware.cpp
         cerium/debug/logging/ConsoleLoggerMiddleware.cpp
         cerium/debug/logging/FileLoggerMiddleware.cpp
+        cerium/debug/logging/LoggerFilePool.cpp
         cerium/time/Clock.cpp
-
 )
 
 target_include_directories(CeriumApp

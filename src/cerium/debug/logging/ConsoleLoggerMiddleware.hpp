@@ -4,10 +4,10 @@
 #include "LoggerMiddleware.hpp"
 
 class ConsoleLoggerMiddleware : public LoggerMiddleware {
-public:
-  explicit ConsoleLoggerMiddleware() = default;
+  public:
+    explicit ConsoleLoggerMiddleware() = default;
 
-  void log(const Log& log) override;
+    void log(const Log& log) override;
 };
 
 #endif // CERIUM_DEBUG_LOGGING_CONSOLELOGGERMIDDLEWARE_HPP_

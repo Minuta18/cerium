@@ -5,14 +5,15 @@
 
 #include <filesystem>
 #include <fstream>
+#include <memory>
 
 class FileLoggerMiddleware : public LoggerMiddleware {
-  std::ofstream file;
+    std::shared_ptr<std::ofstream> file;
 
-public:
-  explicit FileLoggerMiddleware(std::filesystem::path path);
+  public:
+    explicit FileLoggerMiddleware(std::filesystem::path path);
 
-  void log(const Log& log) override;
+    void log(const Log& log) override;
 };
 
 #endif // CERIUM_DEBUG_LOGGING_FILELOGGERMIDDLEWARE_HPP_
