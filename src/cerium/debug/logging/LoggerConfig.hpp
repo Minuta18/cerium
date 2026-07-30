@@ -5,8 +5,10 @@
 #include <vector>
 
 #include "LoggerMiddleware.hpp"
+#include "LogLevel.hpp"
 
 struct LoggerConfig {
+    LogLevel level;
     std::vector<std::shared_ptr<LoggerMiddleware>> middlewares;
 };
 

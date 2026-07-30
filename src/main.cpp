@@ -14,13 +14,16 @@ int main() {
     auto fileLogger2 = std::make_shared<FileLoggerMiddleware>(std::filesystem::path("log.txt"));
 
     LoggerConfig cfg;
+    cfg.level = LogLevel::Info;
     cfg.middlewares.push_back(consoleLogger);
     cfg.middlewares.push_back(fileLogger1);
     cfg.middlewares.push_back(fileLogger2);
 
     Logger logger("cerium.main", std::move(cfg));
 
-    logger.debug("Test: {}", 57);
+    logger.debug("This won't be in the logs.");
+    logger.info("Test: {}", 57);
+    logger.error("Error");
 
     return 0;
 }

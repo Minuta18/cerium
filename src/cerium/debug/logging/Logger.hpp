@@ -53,6 +53,10 @@ template <typename... Args> void Logger::fatal(const std::string& message, Args&
 
 template <typename... Args>
 void Logger::log(LogLevel level, const std::string& message, Args&&... args) {
+    if (static_cast<int>(level) < static_cast<int>(cfg.level)) {
+        return;
+    }
+
     std::string completedMessage = std::vformat(message, std::make_format_args(args...));
     Log entry = createLog(level, completedMessage);
 
