@@ -9,6 +9,8 @@ target_sources(CeriumApp
         cerium/debug/logging/ConsoleLoggerMiddleware.cpp
         cerium/debug/logging/FileLoggerMiddleware.cpp
         cerium/debug/logging/LoggerFilePool.cpp
+        cerium/project/application.cpp
+        cerium/project/project.cpp
         cerium/time/Clock.cpp
 )
 
@@ -18,7 +20,7 @@ target_include_directories(CeriumApp
 )
 
 if(MSVC)
-    target_compile_options(cerium PRIVATE
+    target_compile_options(CeriumApp PRIVATE
         /W4
         /WX
     )
