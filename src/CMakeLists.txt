@@ -20,7 +20,7 @@ target_include_directories(CeriumApp
 )
 
 if(MSVC)
-    target_compile_options(cerium PRIVATE
+    target_compile_options(CeriumApp PRIVATE
         /W4
         /WX
     )

@@ -28,8 +28,7 @@ int main() {
     logger.error("Error");
 
     try {
-        Project project;
-        Application app(project);
+        Application app;
         app.run();
     } catch (std::exception& e) {
         std::cerr << "Fatal exception: " << e.what() << std::endl;

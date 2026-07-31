@@ -2,6 +2,7 @@ CMakeLists.txt.user
 CMakeCache.txt
 CMakeFiles
 CMakeScripts
+CMakeSettings.json
 Testing
 Makefile
 cmake_install.cmake
@@ -12,3 +13,5 @@ _deps
 CMakeUserPresets.json
 build
 build/
+out/
+.vs/
