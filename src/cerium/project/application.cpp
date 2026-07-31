@@ -1,13 +1,10 @@
-#include "project.hpp"
+#include "application.hpp"
 
-class Application {
-private:
-    Project project;
-public:
-    Application(Project proj) {
-        this->project = proj;
-    }
-    void run() {
 
-    }
-};
+Application::Application() {
+    project = std::make_unique<Project>();
+}
+
+void Application::run() {
+
+}

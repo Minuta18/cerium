@@ -2,12 +2,13 @@
 #define CERIUM_PROJECT_APPLICATION_HPP_
 
 #include "project.hpp"
+#include <memory>
 
 class Application {
 private:
-    Project project;
+    std::unique_ptr<Project> project;
 public:
-    Application(Project proj);
+    Application();
     void run();
 };
 

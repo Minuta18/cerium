@@ -1,9 +1,5 @@
+#include "project.hpp"
 
+Project::Project() {
 
-class Project {
-public:
-    Project() {
-
-    }
-
-};
+}
