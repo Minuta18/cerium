@@ -24,3 +24,7 @@ Application::Application() {
 void Application::run() {
 	(*logger).info("App started");
 }
+
+Application::~Application() {
+	(*logger).info("App terminated sucessfully");
+}

@@ -27,6 +27,8 @@ public:
     Application();
 
     void run();
+
+    ~Application();
 };
 
 #endif //CERIUM_PROJECT_APPLICATION_HPP_
