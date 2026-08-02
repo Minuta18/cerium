@@ -16,5 +16,13 @@ int main() {
 
     logger.info("test");
 
+    try {
+        Application app;
+        app.run();
+    } catch (std::exception& e) {
+        std::cerr << "Fatal exception: " << e.what() << std::endl;
+    }
+
+
     return 0;
 }
