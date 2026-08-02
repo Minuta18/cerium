@@ -31,6 +31,7 @@ int main() {
         Application app;
         app.run();
     } catch (std::exception& e) {
+		logger.error("Fatal exception: {}", e.what());
         std::cerr << "Fatal exception: " << e.what() << std::endl;
     }
 
