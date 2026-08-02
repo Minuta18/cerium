@@ -6,7 +6,7 @@
 
 namespace Logging {
 
-void setDefaultConfig(LoggerConfig cfg);
+void setDefaultConfig(const LoggerConfig& cfg);
 
 Logger createLogger(std::string loggerName);
 

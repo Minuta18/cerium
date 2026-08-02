@@ -4,8 +4,8 @@ namespace Logging {
 
 static LoggerConfig defaultConfig;
 
-void setDefaultConfig(LoggerConfig cfg) {
-    defaultConfig = std::move(cfg);
+void setDefaultConfig(const LoggerConfig& cfg) {
+    defaultConfig = cfg;
 }
 
 Logger createLogger(std::string loggerName) {
