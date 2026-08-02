@@ -27,6 +27,7 @@ public:
     Application();
 
     void run();
+    void quit();
 
     ~Application();
 };

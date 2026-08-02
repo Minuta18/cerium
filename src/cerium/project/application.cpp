@@ -25,6 +25,10 @@ void Application::run() {
 	(*logger).info("App started");
 }
 
+void Application::quit() {
+	(*logger).info("App quitting");
+}
+
 Application::~Application() {
 	(*logger).info("App terminated sucessfully");
 }
