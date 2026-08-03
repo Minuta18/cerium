@@ -1,8 +1,7 @@
-add_executable(CeriumApp)
+add_library(Cerium)
 
-target_sources(CeriumApp
+target_sources(Cerium
     PRIVATE
-        main.cpp
         cerium/debug/logging/LogLevel.cpp
         cerium/debug/logging/Logger.cpp
         cerium/debug/logging/LoggerMiddleware.cpp
@@ -15,18 +14,27 @@ target_sources(CeriumApp
         cerium/time/Clock.cpp
 )
 
-target_include_directories(CeriumApp
-    PRIVATE
+target_include_directories(Cerium
+    PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/cerium
 )
 
+add_executable(CeriumApp
+    main.cpp
+)
+
+target_link_libraries(CeriumApp
+    PRIVATE
+        Cerium
+)
+
 if(MSVC)
-    target_compile_options(CeriumApp PRIVATE
+    target_compile_options(Cerium PRIVATE
         /W4
         /WX
     )
 else()
-  target_compile_options(CeriumApp PRIVATE
+    target_compile_options(Cerium PRIVATE
         -Wall
         -Wextra
         -Wpedantic
