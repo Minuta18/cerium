@@ -8,7 +8,7 @@
 #include "LogLevel.hpp"
 
 struct LoggerConfig {
-    LogLevel level;
+    LogLevel level = LogLevel::Info;
     std::vector<std::shared_ptr<LoggerMiddleware>> middlewares;
 };
 
