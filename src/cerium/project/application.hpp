@@ -16,17 +16,12 @@ class Application {
 private:
     std::unique_ptr<Project> project;
 
-    std::shared_ptr<ConsoleLoggerMiddleware> consoleLogger;
-    std::shared_ptr<FileLoggerMiddleware> fileLogger1;
-    std::shared_ptr<FileLoggerMiddleware> fileLogger2;
-
-    LoggerConfig cfg;
-
     std::unique_ptr<Logger> logger;
 public:
     Application();
 
     void run();
+    void setupLogger();
     void quit();
 
     ~Application();

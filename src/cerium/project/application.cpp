@@ -4,31 +4,31 @@
 Application::Application() {
     project = std::make_unique<Project>();
 
-	consoleLogger = std::make_shared<
-		ConsoleLoggerMiddleware>();
-	fileLogger1 = std::make_shared<
-		FileLoggerMiddleware>(std::filesystem::path("log.txt"));
-	fileLogger2 = std::make_shared<
-		FileLoggerMiddleware>(std::filesystem::path("log2.txt"));
+	setupLogger();
 
-	cfg.level = LogLevel::Info;
-	cfg.middlewares.push_back(consoleLogger);
-	cfg.middlewares.push_back(fileLogger1);
-	cfg.middlewares.push_back(fileLogger2);
-
-	logger = std::make_unique<Logger>("cerium.application", std::move(cfg));
-
-	(*logger).info("App initialized successfully");
+	logger->info("App initialized successfully");
 }
 
 void Application::run() {
-	(*logger).info("App started");
+	logger->info("App started");
 }
 
 void Application::quit() {
-	(*logger).info("App quitting");
+	logger->info("App quitting");
 }
 
+void Application::setupLogger() {
+	auto consoleMiddleware = std::make_shared<ConsoleLoggerMiddleware>();
+	auto fileMiddleware = std::make_shared<FileLoggerMiddleware>("log.txt");
+
+	LoggerConfig cfg;
+	cfg.middlewares.push_back(consoleMiddleware);
+	cfg.middlewares.push_back(fileMiddleware);
+
+	logger = std::make_unique<Logger>("cerium.application", std::move(cfg));
+}
+
+
 Application::~Application() {
-	(*logger).info("App terminated sucessfully");
+	logger->info("App terminated sucessfully");
 }
