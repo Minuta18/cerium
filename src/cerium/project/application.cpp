@@ -2,7 +2,7 @@
 
 
 Application::Application() {
-    project = std::make_unique<Project>();
+	project = std::make_unique<Project>();
 
 	setupLogger();
 
@@ -25,7 +25,9 @@ void Application::setupLogger() {
 	cfg.middlewares.push_back(consoleMiddleware);
 	cfg.middlewares.push_back(fileMiddleware);
 
-	logger = std::make_unique<Logger>("cerium.application", std::move(cfg));
+	Logging::setDefaultConfig(std::move(cfg));
+
+	logger = std::make_unique<Logger>(Logging::createLogger("cerium.application"));
 }
 
 

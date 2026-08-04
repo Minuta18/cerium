@@ -10,7 +10,8 @@
 #include "debug/logging/FileLoggerMiddleware.hpp"
 #include "debug/logging/Logger.hpp"
 #include "debug/logging/LoggerConfig.hpp"
-    
+#include "debug/logging/Logging.hpp"
+
 
 class Application {
 private:
