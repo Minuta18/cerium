@@ -4,7 +4,9 @@
 #include <string>
 
 class Project {
+private:
     std::string name;
+
 public:
     Project();
 };
