@@ -1,31 +1,20 @@
+#include "cerium/debug/logging/Logging.hpp"
 #include "cerium/debug/logging/ConsoleLoggerMiddleware.hpp"
 #include "cerium/debug/logging/FileLoggerMiddleware.hpp"
-#include "cerium/debug/logging/Logger.hpp"
-#include "cerium/debug/logging/LoggerConfig.hpp"
-#include "cerium/project/application.hpp"
-
-#include <filesystem>
-#include <memory>
-#include <iostream>
 
 int main() {
-    auto consoleLogger = std::make_shared<ConsoleLoggerMiddleware>();
-
-    auto fileLogger1 = std::make_shared<FileLoggerMiddleware>(std::filesystem::path("log.txt"));
-
-    auto fileLogger2 = std::make_shared<FileLoggerMiddleware>(std::filesystem::path("log.txt"));
+    auto console = std::make_shared<ConsoleLoggerMiddleware>();
+    auto file = std::make_shared<FileLoggerMiddleware>("log.txt");
 
     LoggerConfig cfg;
-    cfg.level = LogLevel::Info;
-    cfg.middlewares.push_back(consoleLogger);
-    cfg.middlewares.push_back(fileLogger1);
-    cfg.middlewares.push_back(fileLogger2);
+    cfg.middlewares.push_back(console);
+    cfg.middlewares.push_back(file);
 
-    Logger logger("cerium.main", std::move(cfg));
+    Logging::setDefaultConfig(std::move(cfg));
 
-    logger.debug("This won't be in the logs.");
-    logger.info("Test: {}", 57);
-    logger.error("Error");
+    auto logger = Logging::createLogger("cerium.main");
+
+    logger.info("test");
 
     try {
         Application app;
