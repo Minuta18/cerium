@@ -1,7 +1,7 @@
 #include "cerium/debug/logging/Logging.hpp"
 #include "cerium/debug/logging/ConsoleLoggerMiddleware.hpp"
 #include "cerium/debug/logging/FileLoggerMiddleware.hpp"
-#include "cerium/project/application.hpp"
+#include "application.hpp"
 
 #include <iostream>
 

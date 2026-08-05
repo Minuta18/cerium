@@ -1,0 +1,8 @@
+#ifndef CERIUM_DOCUMENT_DOCUMENT_HPP_
+#define CERIUM_DOCUMENT_DOCUMENT_HPP_
+
+class Document {
+
+};
+
+#endif //CERIUM_DOCUMENT_DOCUMENT_HPP_

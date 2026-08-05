@@ -9,7 +9,7 @@ target_sources(Cerium
         cerium/debug/logging/FileLoggerMiddleware.cpp
         cerium/debug/logging/LoggerFilePool.cpp
         cerium/debug/logging/Logging.cpp
-        cerium/project/application.cpp
+        application.cpp
         cerium/project/project.cpp
         cerium/time/Clock.cpp
 )

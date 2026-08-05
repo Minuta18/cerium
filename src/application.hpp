@@ -1,16 +1,16 @@
 #ifndef CERIUM_PROJECT_APPLICATION_HPP_
 #define CERIUM_PROJECT_APPLICATION_HPP_
 
-#include "project.hpp"
+#include "cerium/project/project.hpp"
 
 #include <memory>
 #include <filesystem>
 
-#include "debug/logging/ConsoleLoggerMiddleware.hpp"
-#include "debug/logging/FileLoggerMiddleware.hpp"
-#include "debug/logging/Logger.hpp"
-#include "debug/logging/LoggerConfig.hpp"
-#include "debug/logging/Logging.hpp"
+#include "cerium/debug/logging/ConsoleLoggerMiddleware.hpp"
+#include "cerium/debug/logging/FileLoggerMiddleware.hpp"
+#include "cerium/debug/logging/Logger.hpp"
+#include "cerium/debug/logging/LoggerConfig.hpp"
+#include "cerium/debug/logging/Logging.hpp"
 
 
 class Application {
