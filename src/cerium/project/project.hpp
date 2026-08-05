@@ -13,13 +13,11 @@ private:
     std::unordered_map<std::filesystem::path, std::unique_ptr<Document>> documents;
 
 public:
-    Project();
+    Project(std::string name);
 
-    bool set_name(std::string name);
-
-    void open_document();
-    void close_document();
-	Document get_document(std::string path);
+    void open_document(std::string path, std::string language = "plaintext", bool edit = true);
+    void close_document(std::string path);
+	Document& get_document(std::string path);
     void save_document();
     bool save_document_as(std::string path);
 };
