@@ -10,7 +10,6 @@ private:
 	std::string path;
 	std::string language = "plaintext";
 	bool edit = true;
-	bool open = false;
 
 	Document(Document&& document, std::string path, std::string language = "plaintext", bool edit = true) noexcept;
 public:
