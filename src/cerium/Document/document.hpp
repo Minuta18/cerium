@@ -11,8 +11,13 @@ private:
 	std::string language = "plaintext";
 	bool edit = true;
 	bool open = false;
-	Document();
+
+	Document(Document&& document, std::string path, std::string language = "plaintext", bool edit = true) noexcept;
 public:
+	Document(const Document&) = delete;
+
+	Document& operator=(const Document&) = delete;
+	Document& operator=(Document&& document) noexcept;
 
 };
 
