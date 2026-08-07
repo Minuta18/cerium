@@ -1,5 +1,7 @@
 #include "project.hpp"
 
+#include <stdexcept>
+
 Project::Project(std::string name): name(name){
 	
 }
@@ -18,10 +20,14 @@ Document& Project::get_document(std::string path) {
 		return *documents.at(path);
 	}
 	else {
-		// Document not found
+		throw std::runtime_error("Invalid document path");
 	}
 }
 
 void Project::save_document() {
+
+}
+
+bool Project::save_document_as(std::string path) {
 
 }

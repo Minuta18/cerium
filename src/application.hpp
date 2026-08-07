@@ -1,5 +1,5 @@
-#ifndef CERIUM_PROJECT_APPLICATION_HPP_
-#define CERIUM_PROJECT_APPLICATION_HPP_
+#ifndef APPLICATION_HPP_
+#define APPLICATION_HPP_
 
 #include "cerium/project/project.hpp"
 
