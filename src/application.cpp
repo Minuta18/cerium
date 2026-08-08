@@ -2,7 +2,7 @@
 
 
 Application::Application() {
-	project = std::make_unique<Project>();
+	project = std::make_unique<Project>("project");
 
 	setupLogger();
 
