@@ -16,7 +16,7 @@ void Project::close_document(std::string path) {
 }
 
 Document& Project::get_document(std::string path) {
-	if documents.count(path) {
+	if (documents.count(path)) {
 		return *documents.at(path);
 	}
 	else {
@@ -29,5 +29,5 @@ void Project::save_document() {
 }
 
 bool Project::save_document_as(std::string path) {
-
+	path = ""; // TBD implementation
 }

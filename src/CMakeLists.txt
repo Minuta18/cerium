@@ -12,6 +12,7 @@ target_sources(Cerium
         application.cpp
         cerium/project/project.cpp
         cerium/time/Clock.cpp
+        cerium/document/text.cpp
 )
 
 target_include_directories(Cerium
