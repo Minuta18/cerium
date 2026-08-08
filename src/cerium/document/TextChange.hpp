@@ -9,7 +9,8 @@ enum class ChangeType { Insert, Delete };
 struct TextChange {
     ChangeType type;
 
-    size_t position;
+    size_t line;
+    size_t column;
 
     std::string text;
 };

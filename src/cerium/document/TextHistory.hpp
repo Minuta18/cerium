@@ -1,6 +1,7 @@
 #ifndef CERIUM_TEXT_TEXTHISTORY_HPP_
 #define CERIUM_TEXT_TEXTHISTORY_HPP_
 
+#include "text.hpp"
 #include "TextChange.hpp"
 #include <vector>
 
@@ -14,11 +15,11 @@ public:
     bool canUndo() const;
     bool canRedo() const;
 
-    void undo();
-    void redo();
+    void undo(Text& text);
+    void redo(Text& text);
 
-    void pushInsert(size_t position, std::string text);
-    void pushDelete(size_t position, std::string text);
+    void pushInsert(size_t line, size_t column, std::string text);
+    void pushDelete(size_t line, size_t column, std::string text);
 };
 
 #endif // CERIUM_TEXT_TEXTHISTORY_HPP_
