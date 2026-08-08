@@ -12,11 +12,27 @@ target_sources(Cerium
         cerium/project/application.cpp
         cerium/project/project.cpp
         cerium/time/Clock.cpp
+
+        ${CMAKE_SOURCE_DIR}/lib/glad/src/glad.c
 )
 
 target_include_directories(Cerium
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/cerium
+)
+
+target_link_libraries(Cerium
+    PUBLIC
+        OpenGL::GL
+        glfw
+        RmlUi::Core
+        RmlUi::Debugger
+)
+
+target_include_directories(Cerium
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/cerium
+        ${CMAKE_SOURCE_DIR}/lib/glad/include
 )
 
 add_executable(CeriumApp
