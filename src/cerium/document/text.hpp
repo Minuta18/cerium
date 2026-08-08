@@ -6,6 +6,10 @@
 
 struct Line {
 	Line(std::string content, int countBefore);
+	Line(std::string content);
+	Line(const Line& other);
+
+	Line& operator=(const Line& other);
 
 	std::string content;
 	int countBefore;
@@ -18,6 +22,9 @@ private:
 	int currentColumn;
 	int currentLine;
 public:
+	Text(std::string content);
+	Text(std::vector<Line> content);
+
 	int getPosition();
 	int characterCount();
 
@@ -34,6 +41,8 @@ public:
 
 	void deleteLine(int line);
 	void deleteLine();
+	void deleteMultiple(int number);
+	void deleteMultiple(int number, int line, int column);
 	void remove();
 	void remove(int line, int column);
 

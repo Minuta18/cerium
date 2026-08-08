@@ -6,8 +6,8 @@ Project::Project(std::string name): name(name){
 	
 }
 
-void Project::open_document(std::string path, std::string language, bool edit) {
-	documents.insert({ path, std::make_unique<Document>(Document(std::move(*documents[path]), path, language, edit)) });
+/* void Project::open_document(std::string path, std::string language, bool edit) {
+	documents.insert({ path, std::make_unique<Document>(Document(std::move(*documents[path]), std::move(path), std::move(language), std::move(edit))) });
 
 }
 
@@ -30,4 +30,4 @@ void Project::save_document() {
 
 bool Project::save_document_as(std::string path) {
 	path = ""; // TBD implementation
-}
+} */

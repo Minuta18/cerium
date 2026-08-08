@@ -1,6 +1,26 @@
 #include "text.hpp"
+#include <ranges>
 
-Line::Line(std::string content, int countBefore) : content(content), countBefore(countBefore) {}
+Line::Line(std::string content, int countBefore): content(content), countBefore(countBefore) {}
+
+Line::Line(std::string content) : content(content), countBefore(0) {}
+
+Line::Line(const Line& other) : content(other.content), countBefore(other.countBefore) {}
+
+Line& Line::operator=(const Line& other) {
+	content = other.content;
+	countBefore = other.countBefore;
+	return *this;
+};
+
+Text::Text(std::string content): currentColumn(0), currentLine(0), position(0) {
+	auto lines = content | std::views::split('\n');
+	text = std::ranges::to<std::vector<Line>>(lines | std::views::transform([](auto&& line) {
+		return Line(std::string(line.begin(), line.end()));
+		}));
+}
+
+Text::Text(std::vector<Line> content): text(content), currentColumn(0), currentLine(0), position(0) {}
 
 int Text::getPosition() {
 	return text[currentLine].countBefore + currentColumn;
@@ -57,6 +77,14 @@ void Text::deleteLine(int line) {
 void Text::deleteLine() {
 	text.erase(text.begin() + currentLine);
 	allCountBefore();
+}
+
+void Text::deleteMultiple(int number) {
+	text[currentLine].content.erase(currentColumn, number);
+}
+
+void Text::deleteMultiple(int number, int line, int column) {
+	text[line].content.erase(column, number);
 }
 
 void Text::remove() {
