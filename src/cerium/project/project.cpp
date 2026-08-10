@@ -28,6 +28,9 @@ Document& Project::get_document(std::filesystem::path path) {
 
 void Project::save_document(std::filesystem::path path) {
 	std::ofstream doc(path);
+	if (!doc) {
+		std::cout << "document not found";
+	}
 	Document& document = get_document(path);
 	std::vector<Line> documentText = document.text.getText();
 	for (size_t i = 0; i < documentText.size(); ++i) {
@@ -45,13 +48,12 @@ bool Project::save_document_as(std::filesystem::path old_path, std::filesystem::
 	}
 	document.path = new_path;
 	auto extractedPath = documents.extract(old_path);
-	if (!extractedPath.empty()) {
-		extractedPath.key() = new_path;
-		documents.insert(std::move(extractedPath));
-	}
-	else {
+	if (extractedPath.empty()) {
 		std::cerr << "why would this happen anyways";
 		return false;
 	}
+	extractedPath.key() = new_path;
+	documents.insert(std::move(extractedPath));
+	save_document(new_path);
 	return true;
 }
