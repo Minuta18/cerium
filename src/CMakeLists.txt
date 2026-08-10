@@ -11,6 +11,7 @@ target_sources(Cerium
         cerium/debug/logging/Logging.cpp
         application.cpp
         cerium/project/project.cpp
+        cerium/document/document.cpp
         cerium/time/Clock.cpp
         cerium/document/text.cpp
 )

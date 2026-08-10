@@ -6,21 +6,21 @@
 #include <memory>
 #include <filesystem>
 
-#include "../Document/document.hpp"
+#include "../document/document.hpp"
 
 class Project {
 private:
     std::string name;
-    // std::unordered_map<std::filesystem::path, std::unique_ptr<Document>> documents;
+    std::unordered_map<std::filesystem::path, std::unique_ptr<Document>> documents;
 
 public:
     Project(std::string name);
 
-    /*void open_document(std::string path, std::string language = "plaintext", bool edit = true);
-    void close_document(std::string path);
-	Document& get_document(std::string path);
-    void save_document();
-    bool save_document_as(std::string path); */
+    void open_document(std::filesystem::path path, Text text, std::string language = "txt", bool edit = true);
+    void close_document(std::filesystem::path path);
+	Document& get_document(std::filesystem::path path);
+    void save_document(std::filesystem::path path);
+    bool save_document_as(std::filesystem::path old_path, std::filesystem::path new_path);
 };
 
 #endif //CERIUM_PROJECT_PROJECT_HPP_

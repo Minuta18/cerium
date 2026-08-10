@@ -1,33 +1,38 @@
 #include "project.hpp"
+#include "../document/text.hpp"
 
 #include <stdexcept>
+#include <filesystem>
+#include <fstream>
 
 Project::Project(std::string name): name(name){
 	
 }
 
-/* void Project::open_document(std::string path, std::string language, bool edit) {
-	documents.insert({ path, std::make_unique<Document>(Document(std::move(*documents[path]), std::move(path), std::move(language), std::move(edit))) });
+void Project::open_document(std::filesystem::path path, Text text, std::string language, bool edit) {
+	documents.insert({ path, std::unique_ptr<Document>(new Document(path, text, language, edit)) });
 
 }
 
-void Project::close_document(std::string path) {
+void Project::close_document(std::filesystem::path path) {
 	documents.erase(path);
 }
-
-Document& Project::get_document(std::string path) {
-	if (documents.count(path)) {
-		return *documents.at(path);
+	
+Document& Project::get_document(std::filesystem::path path) {
+	auto it = documents.find(path);
+	if (it != documents.end()) {
+		return *(it->second);
 	}
-	else {
-		throw std::runtime_error("Invalid document path");
-	}
+	throw std::runtime_error("Invalid document path");
 }
 
-void Project::save_document() {
+void Project::save_document(std::filesystem::path path) {
+	std::ofstream doc(path);
 
 }
 
-bool Project::save_document_as(std::string path) {
-	path = ""; // TBD implementation
-} */
+bool Project::save_document_as(std::filesystem::path old_path, std::filesystem::path new_path) {
+	new_path = ""; // TBD implementation
+	old_path = "";
+	return false;
+}
