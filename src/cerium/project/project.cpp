@@ -1,7 +1,7 @@
 #include "project.hpp"
 #include "../document/text.hpp"
 
-#include <stdexcept>
+#include <iostream>
 #include <filesystem>
 #include <fstream>
 
@@ -28,11 +28,30 @@ Document& Project::get_document(std::filesystem::path path) {
 
 void Project::save_document(std::filesystem::path path) {
 	std::ofstream doc(path);
-
+	Document& document = get_document(path);
+	std::vector<Line> documentText = document.text.getText();
+	for (size_t i = 0; i < documentText.size(); ++i) {
+		doc << documentText[i].content << '\n';
+	}
 }
 
 bool Project::save_document_as(std::filesystem::path old_path, std::filesystem::path new_path) {
-	new_path = ""; // TBD implementation
-	old_path = "";
-	return false;
+	Document& document = get_document(old_path);
+	std::vector<Line> documentText = document.text.getText();
+	std::ofstream doc(new_path);
+	if (!doc) {
+		std::cerr << "Invalid path";
+		return false;
+	}
+	document.path = new_path;
+	auto extractedPath = documents.extract(old_path);
+	if (!extractedPath.empty()) {
+		extractedPath.key() = new_path;
+		documents.insert(std::move(extractedPath));
+	}
+	else {
+		std::cerr << "why would this happen anyways";
+		return false;
+	}
+	return true;
 }
