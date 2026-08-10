@@ -11,11 +11,12 @@ Project::Project(std::string name): name(name){
 
 void Project::open_document(std::filesystem::path path, Text text, std::string language, bool edit) {
 	documents.insert({ path, std::unique_ptr<Document>(new Document(path, text, language, edit)) });
-
+	logger->info("Successfully opened document at " + path.string());
 }
 
 void Project::close_document(std::filesystem::path path) {
 	documents.erase(path);
+	logger->info("Closed document at " + path.string());
 }
 	
 Document& Project::get_document(std::filesystem::path path) {
@@ -23,37 +24,53 @@ Document& Project::get_document(std::filesystem::path path) {
 	if (it != documents.end()) {
 		return *(it->second);
 	}
+	logger->error("Invalid document path");
 	throw std::runtime_error("Invalid document path");
 }
 
 void Project::save_document(std::filesystem::path path) {
 	std::ofstream doc(path);
 	if (!doc) {
-		std::cout << "document not found";
+		logger->warn("Invalid document");
+		return;
 	}
 	Document& document = get_document(path);
 	std::vector<Line> documentText = document.text.getText();
 	for (size_t i = 0; i < documentText.size(); ++i) {
 		doc << documentText[i].content << '\n';
 	}
+	logger->info("Saved document to " + path.string());
 }
 
-bool Project::save_document_as(std::filesystem::path old_path, std::filesystem::path new_path) {
+void Project::save_document_as(std::filesystem::path old_path, std::filesystem::path new_path) {
 	Document& document = get_document(old_path);
 	std::vector<Line> documentText = document.text.getText();
 	std::ofstream doc(new_path);
 	if (!doc) {
-		std::cerr << "Invalid path";
-		return false;
+		logger->error("Invalid document path to save to");
+		throw std::runtime_error("Invalid document path to save to");
 	}
 	document.path = new_path;
 	auto extractedPath = documents.extract(old_path);
 	if (extractedPath.empty()) {
-		std::cerr << "why would this happen anyways";
-		return false;
+		logger->error("Couldn't change path of document");
+		throw std::runtime_error("Couldn't change path of document");
 	}
 	extractedPath.key() = new_path;
 	documents.insert(std::move(extractedPath));
 	save_document(new_path);
-	return true;
+	logger->info("Saved document to " + new_path.string());
+}
+
+void Project::setupLogger() {
+	auto consoleMiddleware = std::make_shared<ConsoleLoggerMiddleware>();
+	auto fileMiddleware = std::make_shared<FileLoggerMiddleware>("log.txt");
+
+	LoggerConfig cfg;
+	cfg.middlewares.push_back(consoleMiddleware);
+	cfg.middlewares.push_back(fileMiddleware);
+
+	Logging::setDefaultConfig(std::move(cfg));
+
+	logger = std::make_unique<Logger>(Logging::createLogger("cerium.application"));
 }

@@ -4,6 +4,13 @@
 #include <vector>
 #include <string>
 
+#include "../debug/logging/ConsoleLoggerMiddleware.hpp"
+#include "../debug/logging/FileLoggerMiddleware.hpp"
+#include "../debug/logging/Logger.hpp"
+#include "../debug/logging/LoggerConfig.hpp"
+#include "../debug/logging/Logging.hpp"
+
+
 struct Line {
 	Line(std::string content, int countBefore);
 	Line(std::string content);
@@ -13,6 +20,8 @@ struct Line {
 
 	std::string content;
 	int countBefore;
+
+	std::unique_ptr<Logger> logger;
 };
 
 class Text {
@@ -50,6 +59,8 @@ public:
 	std::string getLine(int line);
 
 	void clear();
+
+	void setupLogger();
 };
 
 #endif //CERIUM_DOCUMENT_TEXT_HPP_
