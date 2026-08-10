@@ -25,11 +25,11 @@ private:
 public:
     Project(std::string name);
 
-    void open_document(std::filesystem::path path, Text text, std::string language = "txt", bool edit = true);
-    void close_document(std::filesystem::path path);
-	Document& get_document(std::filesystem::path path);
-    void save_document(std::filesystem::path path);
-    void save_document_as(std::filesystem::path old_path, std::filesystem::path new_path);
+    void openDocument(std::filesystem::path path, Text text, std::string language = "txt", bool edit = true);
+    void closeDocument(std::filesystem::path path);
+	Document& getDocument(std::filesystem::path path);
+    void saveDocument(std::filesystem::path path);
+    void saveDocumentAs(std::filesystem::path old_path, std::filesystem::path new_path);
 
     void setupLogger();
 };

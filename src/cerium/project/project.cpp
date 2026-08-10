@@ -9,17 +9,17 @@ Project::Project(std::string name): name(name){
 	
 }
 
-void Project::open_document(std::filesystem::path path, Text text, std::string language, bool edit) {
+void Project::openDocument(std::filesystem::path path, Text text, std::string language, bool edit) {
 	documents.insert({ path, std::unique_ptr<Document>(new Document(path, text, language, edit)) });
 	logger->info("Successfully opened document at " + path.string());
 }
 
-void Project::close_document(std::filesystem::path path) {
+void Project::closeDocument(std::filesystem::path path) {
 	documents.erase(path);
 	logger->info("Closed document at " + path.string());
 }
 	
-Document& Project::get_document(std::filesystem::path path) {
+Document& Project::getDocument(std::filesystem::path path) {
 	auto it = documents.find(path);
 	if (it != documents.end()) {
 		return *(it->second);
@@ -28,13 +28,13 @@ Document& Project::get_document(std::filesystem::path path) {
 	throw std::runtime_error("Invalid document path");
 }
 
-void Project::save_document(std::filesystem::path path) {
+void Project::saveDocument(std::filesystem::path path) {
 	std::ofstream doc(path);
 	if (!doc) {
 		logger->warn("Invalid document");
 		return;
 	}
-	Document& document = get_document(path);
+	Document& document = getDocument(path);
 	std::vector<Line> documentText = document.text.getText();
 	for (size_t i = 0; i < documentText.size(); ++i) {
 		doc << documentText[i].content << '\n';
@@ -42,8 +42,8 @@ void Project::save_document(std::filesystem::path path) {
 	logger->info("Saved document to " + path.string());
 }
 
-void Project::save_document_as(std::filesystem::path old_path, std::filesystem::path new_path) {
-	Document& document = get_document(old_path);
+void Project::saveDocumentAs(std::filesystem::path old_path, std::filesystem::path new_path) {
+	Document& document = getDocument(old_path);
 	std::vector<Line> documentText = document.text.getText();
 	std::ofstream doc(new_path);
 	if (!doc) {
@@ -58,7 +58,7 @@ void Project::save_document_as(std::filesystem::path old_path, std::filesystem::
 	}
 	extractedPath.key() = new_path;
 	documents.insert(std::move(extractedPath));
-	save_document(new_path);
+	saveDocument(new_path);
 	logger->info("Saved document to " + new_path.string());
 }
 
