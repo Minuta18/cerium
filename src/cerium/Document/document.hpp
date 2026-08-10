@@ -5,13 +5,6 @@
 #include "text.hpp"
 #include <filesystem>
 
-#include "../debug/logging/ConsoleLoggerMiddleware.hpp"
-#include "../debug/logging/FileLoggerMiddleware.hpp"
-#include "../debug/logging/Logger.hpp"
-#include "../debug/logging/LoggerConfig.hpp"
-#include "../debug/logging/Logging.hpp"
-
-
 class Document {
 	friend class Project;
 private:
@@ -20,8 +13,6 @@ private:
 	Text text;
 	bool edit = true;
 
-	std::unique_ptr<Logger> logger;
-
 	Document(Document&& other) noexcept;
 	Document(std::filesystem::path path, Text text, std::string language = "txt", bool edit = true);
 public:
@@ -29,8 +20,6 @@ public:
 
 	Document& operator=(const Document&) = delete;
 	Document& operator=(Document&& other) noexcept;
-
-	void setupLogger();
 
 	~Document() = default;
 };

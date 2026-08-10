@@ -36,6 +36,7 @@ void Text::allCountBefore() {
 		text[i].countBefore = currentCount;
 		currentCount += static_cast<int>(text[i].content.size());
 	}
+	logger->info("Count of symbols before each line updated");
 }
 
 void Text::setLine(int line) {
@@ -110,6 +111,7 @@ void Text::clear() {
 	currentColumn = 0;
 	currentLine = 0;
 	position = 0;
+	logger->info("Text cleared");
 }
 
 void Text::setupLogger() {

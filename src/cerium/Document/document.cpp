@@ -17,16 +17,3 @@ Document& Document::operator=(Document&& other) noexcept {
     }
     return *this;
 }
-
-void Document::setupLogger() {
-	auto consoleMiddleware = std::make_shared<ConsoleLoggerMiddleware>();
-	auto fileMiddleware = std::make_shared<FileLoggerMiddleware>("log.txt");
-
-	LoggerConfig cfg;
-	cfg.middlewares.push_back(consoleMiddleware);
-	cfg.middlewares.push_back(fileMiddleware);
-
-	Logging::setDefaultConfig(std::move(cfg));
-
-	logger = std::make_unique<Logger>(Logging::createLogger("cerium.application"));
-}

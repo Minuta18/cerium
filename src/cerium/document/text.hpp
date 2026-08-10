@@ -20,8 +20,6 @@ struct Line {
 
 	std::string content;
 	int countBefore;
-
-	std::unique_ptr<Logger> logger;
 };
 
 class Text {
@@ -30,6 +28,7 @@ private:
 	int position;
 	int currentColumn;
 	int currentLine;
+	std::unique_ptr<Logger> logger;
 public:
 	Text(std::string content);
 	Text(std::vector<Line> content);
