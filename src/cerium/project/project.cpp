@@ -5,9 +5,7 @@
 #include <filesystem>
 #include <fstream>
 
-Project::Project(std::string name): name(name){
-	
-}
+Project::Project(std::string name): name(name), logger(std::make_unique<Logger>(Logging::createLogger("cerium.project.project"))) {}
 
 void Project::openDocument(std::filesystem::path path, Text text, std::string language, bool edit) {
 	documents.insert({ path, std::unique_ptr<Document>(new Document(path, text, language, edit)) });
@@ -60,17 +58,4 @@ void Project::saveDocumentAs(std::filesystem::path old_path, std::filesystem::pa
 	documents.insert(std::move(extractedPath));
 	saveDocument(new_path);
 	logger->info("Saved document to " + new_path.string());
-}
-
-void Project::setupLogger() {
-	auto consoleMiddleware = std::make_shared<ConsoleLoggerMiddleware>();
-	auto fileMiddleware = std::make_shared<FileLoggerMiddleware>("log.txt");
-
-	LoggerConfig cfg;
-	cfg.middlewares.push_back(consoleMiddleware);
-	cfg.middlewares.push_back(fileMiddleware);
-
-	Logging::setDefaultConfig(std::move(cfg));
-
-	logger = std::make_unique<Logger>(Logging::createLogger("cerium.application"));
 }

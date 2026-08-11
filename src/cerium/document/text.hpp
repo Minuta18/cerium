@@ -33,6 +33,12 @@ public:
 	Text(std::string content);
 	Text(std::vector<Line> content);
 
+	Text(const Text& other);
+	Text& operator=(const Text& other);
+
+	Text(Text&& other) noexcept = default;
+	Text& operator=(Text&& other) noexcept = default;
+
 	int getPosition();
 	int characterCount();
 

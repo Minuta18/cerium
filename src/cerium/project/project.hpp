@@ -30,8 +30,6 @@ public:
 	Document& getDocument(std::filesystem::path path);
     void saveDocument(std::filesystem::path path);
     void saveDocumentAs(std::filesystem::path old_path, std::filesystem::path new_path);
-
-    void setupLogger();
 };
 
 #endif //CERIUM_PROJECT_PROJECT_HPP_

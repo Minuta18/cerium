@@ -11,10 +11,10 @@ private:
 	std::filesystem::path path;
 	std::string language = "txt";
 	Text text;
-	bool edit = true;
+	bool isEditable = true;
 
 	Document(Document&& other) noexcept;
-	Document(std::filesystem::path path, Text text, std::string language = "txt", bool edit = true);
+	Document(std::filesystem::path path, Text text, std::string language = "txt", bool isEditable = true);
 public:
 	Document(const Document&) = delete;
 

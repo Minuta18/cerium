@@ -13,14 +13,33 @@ Line& Line::operator=(const Line& other) {
 	return *this;
 };
 
-Text::Text(std::string content): currentColumn(0), currentLine(0), position(0) {
+Text::Text(std::string content): currentColumn(0), currentLine(0), position(0), logger(std::make_unique<Logger>(Logging::createLogger("cerium.document.text"))) {
 	auto lines = content | std::views::split('\n');
 	text = std::ranges::to<std::vector<Line>>(lines | std::views::transform([](auto&& line) {
 		return Line(std::string(line.begin(), line.end()));
 		}));
 }
 
-Text::Text(std::vector<Line> content): text(content), currentColumn(0), currentLine(0), position(0) {}
+Text::Text(std::vector<Line> content): text(content), currentColumn(0), currentLine(0), position(0), logger(std::make_unique<Logger>(Logging::createLogger("cerium.document.text"))) {}
+
+Text::Text(const Text& other)
+	: text(other.text),
+	position(other.position),
+	currentLine(other.currentLine),
+	currentColumn(other.currentColumn),
+	logger(std::make_unique<Logger>(Logging::createLogger("cerium.document.text"))) {
+}
+
+Text& Text::operator=(const Text& other) {
+	if (this != &other) {
+		text = other.text;
+		position = other.position;
+		currentLine = other.currentLine;
+		currentColumn = other.currentColumn;
+		logger = std::make_unique<Logger>(Logging::createLogger("cerium.document.text"));
+	}
+	return *this;
+}
 
 int Text::getPosition() {
 	return text[currentLine].countBefore + currentColumn;
@@ -112,17 +131,4 @@ void Text::clear() {
 	currentLine = 0;
 	position = 0;
 	logger->info("Text cleared");
-}
-
-void Text::setupLogger() {
-	auto consoleMiddleware = std::make_shared<ConsoleLoggerMiddleware>();
-	auto fileMiddleware = std::make_shared<FileLoggerMiddleware>("log.txt");
-
-	LoggerConfig cfg;
-	cfg.middlewares.push_back(consoleMiddleware);
-	cfg.middlewares.push_back(fileMiddleware);
-
-	Logging::setDefaultConfig(std::move(cfg));
-
-	logger = std::make_unique<Logger>(Logging::createLogger("cerium.application"));
 }
