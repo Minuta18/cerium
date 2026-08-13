@@ -2,6 +2,16 @@
 
 #include <utility>
 
+void TextHistory::Transaction::pushInsert(size_t line, size_t column, std::string text) {
+    changes.push_back(
+        {.type = ChangeType::Insert, .line = line, .column = column, .text = std::move(text)});
+}
+
+void TextHistory::Transaction::pushDelete(size_t line, size_t column, std::string text) {
+    changes.push_back(
+        {.type = ChangeType::Delete, .line = line, .column = column, .text = std::move(text)});
+}
+
 bool TextHistory::canUndo() const {
     return current > 0;
 }

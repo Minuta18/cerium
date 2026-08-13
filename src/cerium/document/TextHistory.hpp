@@ -10,6 +10,7 @@
 class TextHistory {
 public:
     enum class ChangeType { Insert, Delete };
+
     struct Change {
         ChangeType type;
 
@@ -20,22 +21,8 @@ public:
     };
 
     struct Transaction {
-        void pushInsert(size_t line, size_t column, std::string text) {
-            changes.push_back(
-                {.type = ChangeType::Insert,
-                 .line = line,
-                 .column = column,
-                 .text = std::move(text)}
-            );
-        }
-        void pushDelete(size_t line, size_t column, std::string text) {
-            changes.push_back(
-                {.type = ChangeType::Delete,
-                 .line = line,
-                 .column = column,
-                 .text = std::move(text)}
-            );
-        }
+        void pushInsert(size_t line, size_t column, std::string text);
+        void pushDelete(size_t line, size_t column, std::string text);
         std::vector<Change> changes;
     };
     bool canUndo() const;
