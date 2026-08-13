@@ -4,6 +4,13 @@
 #include <vector>
 #include <string>
 
+#include "../debug/logging/ConsoleLoggerMiddleware.hpp"
+#include "../debug/logging/FileLoggerMiddleware.hpp"
+#include "../debug/logging/Logger.hpp"
+#include "../debug/logging/LoggerConfig.hpp"
+#include "../debug/logging/Logging.hpp"
+
+
 struct Line {
 	Line(std::string content, int countBefore);
 	Line(std::string content);
@@ -21,9 +28,16 @@ private:
 	int position;
 	int currentColumn;
 	int currentLine;
+	std::unique_ptr<Logger> logger;
 public:
 	Text(std::string content);
 	Text(std::vector<Line> content);
+
+	Text(const Text& other);
+	Text& operator=(const Text& other);
+
+	Text(Text&& other) noexcept = default;
+	Text& operator=(Text&& other) noexcept = default;
 
 	int getPosition();
 	int characterCount();
@@ -50,6 +64,8 @@ public:
 	std::string getLine(int line);
 
 	void clear();
+
+	void setupLogger();
 };
 
 #endif //CERIUM_DOCUMENT_TEXT_HPP_

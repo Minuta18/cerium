@@ -13,15 +13,33 @@ Line& Line::operator=(const Line& other) {
     return *this;
 };
 
-Text::Text(std::string content) : position(0), currentColumn(0), currentLine(0) {
-    auto lines = content | std::views::split('\n');
-    text = std::ranges::to<std::vector<Line>>(lines | std::views::transform([](auto&& line) {
-        return Line(std::string(line.begin(), line.end()));
-    }));
+Text::Text(std::string content): position(0), currentColumn(0), currentLine(0), logger(std::make_unique<Logger>(Logging::createLogger("cerium.document.text"))) {
+	auto lines = content | std::views::split('\n');
+	text = std::ranges::to<std::vector<Line>>(lines | std::views::transform([](auto&& line) {
+		return Line(std::string(line.begin(), line.end()));
+		}));
 }
 
-Text::Text(std::vector<Line> content) :
-    text(content), position(0), currentColumn(0), currentLine(0) {}
+Text::Text(std::vector<Line> content): text(content), position(0), currentColumn(0), currentLine(0), logger(std::make_unique<Logger>(Logging::createLogger("cerium.document.text"))) {}
+
+Text::Text(const Text& other)
+	: text(other.text),
+	position(other.position),
+	currentColumn(other.currentColumn),
+  currentLine(other.currentLine),
+	logger(std::make_unique<Logger>(Logging::createLogger("cerium.document.text"))) {
+}
+
+Text& Text::operator=(const Text& other) {
+	if (this != &other) {
+		text = other.text;
+		position = other.position;
+		currentColumn = other.currentColumn;
+    currentLine = other.currentLine;
+		logger = std::make_unique<Logger>(Logging::createLogger("cerium.document.text"));
+	}
+	return *this;
+}
 
 int Text::getPosition() {
     return text[currentLine].countBefore + currentColumn;
@@ -32,11 +50,12 @@ int Text::characterCount() {
 }
 
 void Text::allCountBefore() {
-    int currentCount = 0;
-    for (size_t i = 0; i < text.size(); ++i) {
-        text[i].countBefore = currentCount;
-        currentCount += static_cast<int>(text[i].content.size());
-    }
+	int currentCount = 0;
+	for (size_t i = 0; i < text.size(); ++i) {
+		text[i].countBefore = currentCount;
+		currentCount += static_cast<int>(text[i].content.size());
+	}
+	logger->info("Count of symbols before each line updated");
 }
 
 void Text::setLine(int line) {
@@ -107,8 +126,9 @@ std::string Text::getLine(int line) {
 }
 
 void Text::clear() {
-    text.clear();
-    currentColumn = 0;
-    currentLine = 0;
-    position = 0;
+	text.clear();
+	currentColumn = 0;
+	currentLine = 0;
+	position = 0;
+	logger->info("Text cleared");
 }
