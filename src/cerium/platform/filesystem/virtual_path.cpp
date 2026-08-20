@@ -1,9 +1,38 @@
 #include "virtual_path.hpp"
+#include <ranges>
 
-VirtualPath::VirtualPath(std::string path_) : path(std::move(path_)) {}
+VirtualPath::VirtualPath(std::string path_) {
+	auto components = path_ | std::views::split('/');
+	path = std::ranges::to<std::vector<string>>(components | std::views::transform([](auto&& component) {
+		return component.to_string();
+		}));
+}
+
+VirtualPath::VirtualPath(std::filesystem::path path_) {
+	auto components = path_ | std::views::split('/');
+	path = std::ranges::to<std::vector<string>>(components | std::views::transform([](auto&& component) {
+		return component.to_string();
+		}));
+}
+
+VirtualPath::VirtualPath(std::string path_, std::string from) {
+	PathResolver& pathResolver = resolver->getResolver(from);
+	path = pathResolver.resolvePath(path_);
+}
 
 std::string VirtualPath::resolve() {
     PathResolver& pathResolver = resolver->getResolver(path.front());
+}
+
+std::string VirtualPath::getVirtual() {
+	std::string result = "";
+	for (size_t i = 0; i < path.size(); ++i) {
+		result += path[i];
+		if (i < path.size() - 1) {
+			result += "/";
+		}
+	}
+	return result;
 }
 
 void VirtualPath::append(const VirtualPath& subpath) {
