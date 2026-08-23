@@ -2,10 +2,18 @@
 #include <ranges>
 
 VirtualPath::VirtualPath(std::string path_) {
-	auto components = path_ | std::views::split('/');
-	path = std::ranges::to<std::vector<string>>(components | std::views::transform([](auto&& component) {
-		return component.to_string();
-		}));
+	if (path_.contains("/")) {
+		auto components = path_ | std::views::split('/');
+		path = std::ranges::to<std::vector<string>>(components | std::views::transform([](auto&& component) {
+			return component.to_string();
+			}));
+	}
+	else {
+		auto components = path_ | std::views::split('\\');
+		path = std::ranges::to<std::vector<string>>(components | std::views::transform([](auto&& component) {
+			return component.to_string();
+			}));
+	}
 }
 
 VirtualPath::VirtualPath(std::filesystem::path path_) {

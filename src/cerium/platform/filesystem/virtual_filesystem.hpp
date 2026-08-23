@@ -16,9 +16,9 @@ enum class Platform {
 
 class VirtualFileSystem {
 private:
-	Platform platformDetection();
-
 	std::unordered_map<std::string, std::unique_ptr<PathResolver>> resolvers;
+
+	Platform platformDetection();
 public:
 	VirtualFileSystem();
 
