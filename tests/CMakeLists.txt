@@ -10,6 +10,7 @@ FetchContent_MakeAvailable(googletest)
 add_executable(CeriumTests
     debug/logging/LoggerTests.cpp
     debug/logging/LoggerFilePoolTests.cpp
+    document/TextHistoryTests.cpp
 )
 
 target_link_libraries(CeriumTests

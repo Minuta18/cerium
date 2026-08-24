@@ -14,6 +14,7 @@ target_sources(Cerium
         cerium/document/document.cpp
         cerium/time/Clock.cpp
         cerium/document/text.cpp
+        cerium/document/TextHistory.cpp
 )
 
 target_include_directories(Cerium
