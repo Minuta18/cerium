@@ -1,5 +1,6 @@
 #include "TextHistory.hpp"
 
+#include <stdexcept>
 #include <utility>
 
 void TextHistory::Transaction::pushInsert(size_t line, size_t column, std::string text) {
@@ -22,7 +23,7 @@ bool TextHistory::canRedo() const {
 
 void TextHistory::undo(Text& text) {
     if (!canUndo())
-        return;
+        throw std::runtime_error("nothing to undo");
 
     --current;
     const Transaction& transaction = history[current];
@@ -40,7 +41,7 @@ void TextHistory::undo(Text& text) {
 
 void TextHistory::redo(Text& text) {
     if (!canRedo())
-        return;
+        throw std::runtime_error("nothing to redo");
 
     const Transaction& transaction = history[current];
     for (const Change& change : transaction.changes) {
