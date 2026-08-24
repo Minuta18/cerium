@@ -30,4 +30,13 @@ public:
 	std::string readFile(const VirtualPath& path, std::optional<int> readLength = std::nullopt);
 };
 
+class MacOSFilesystem : public Filesystem {
+public:
+	std::string resolve(std::vector<std::string> path) override;
+	VirtualPath parsePath(const std::string& path) override;
+
+	void writeFile(const VirtualPath& path);
+	std::string readFile(const VirtualPath& path, std::optional<int> readLength = std::nullopt);
+};
+
 #endif // CERIUM_PLATFORM_FILESYSTEM_FILESYSTEM_HPP_

@@ -1,6 +1,5 @@
 #include "filesystem.hpp"
 
-#include <filesystem>
 #include <fstream>
 
 std::string WindowsFilesystem::resolve(std::vector<std::string> path) {
