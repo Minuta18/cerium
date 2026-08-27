@@ -13,8 +13,8 @@ class Filesystem {
 };
 
 class UnixFilesystem : public Filesystem {
-	virtual std::string resolve(std::vector<std::string> path) override;
-	virtual VirtualPath parsePath(const std::string& path) override;
+	virtual std::string resolve(std::vector<std::string> path) override = 0;
+	virtual VirtualPath parsePath(const std::string& path) override = 0;
 
 	void writeFile(const VirtualPath& path);
 	std::string readFile(const VirtualPath& path, std::optional<int> readLength = std::nullopt);
