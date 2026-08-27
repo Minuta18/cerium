@@ -2,6 +2,10 @@
 
 #include <fstream>
 
+VirtualPath UnixFilesystem::parsePath(const std::string& path) {
+	return VirtualPath(path);
+}
+
 void UnixFilesystem::writeFile(const VirtualPath& path) {
 	std::string resolvedPath = resolve(path.getVirtual());
 	std::ofstream file(resolvedPath);
