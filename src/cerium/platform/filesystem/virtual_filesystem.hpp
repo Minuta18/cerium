@@ -4,9 +4,11 @@
 #include <unordered_map>
 #include <string>
 #include <memory>
+#include <optional>
 
 #include "path_resolver.hpp"
 #include "virtual_path.hpp"
+#include "filesystem.hpp"
 
 enum class Platform {
 	Linux,
@@ -14,18 +16,22 @@ enum class Platform {
 	MacOS
 };
 
-class VirtualFileSystem {
+class VirtualFilesystem {
 private:
 	std::unordered_map<std::string, std::unique_ptr<PathResolver>> resolvers;
 
+	Platform platform;
+	std::unique_ptr<Filesystem> fs;
+
+
+
 	Platform platformDetection();
 public:
-	VirtualFileSystem();
+	VirtualFilesystem();
 
-	void  registerResolver(std::unique_ptr<PathResolver> newResolver);
+	void  registerResolver(std::string name, std::unique_ptr<PathResolver> newResolver);
 	PathResolver& getResolver(const std::string& name);
-
-	void readFile(const VirtualPath& path);
+	std::string readFile(const VirtualPath& path, std::optional<int> readLength = std::nullopt);
 	void writeFile(const VirtualPath& path, const std::string& data);
 };
 
