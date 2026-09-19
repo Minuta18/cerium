@@ -1,71 +1,58 @@
 #ifndef CERIUM_DOCUMENT_TEXT_HPP_
 #define CERIUM_DOCUMENT_TEXT_HPP_
 
-#include <vector>
+#include "storage/ITextStorage.hpp"
+
+#include <memory>
 #include <string>
 
-#include "../debug/logging/ConsoleLoggerMiddleware.hpp"
-#include "../debug/logging/FileLoggerMiddleware.hpp"
-#include "../debug/logging/Logger.hpp"
-#include "../debug/logging/LoggerConfig.hpp"
-#include "../debug/logging/Logging.hpp"
-
-
-struct Line {
-	Line(std::string content, int countBefore);
-	Line(std::string content);
-	Line(const Line& other);
-
-	Line& operator=(const Line& other);
-
-	std::string content;
-	int countBefore;
-};
+using cerium::document::ITextStorage;
 
 class Text {
-private:
-	std::vector<Line> text;
-	int position;
-	int currentColumn;
-	int currentLine;
-	std::unique_ptr<Logger> logger;
 public:
-	Text(std::string content);
-	Text(std::vector<Line> content);
+    Text();
+    explicit Text(std::string content);
+    explicit Text(std::unique_ptr<ITextStorage> storage);
 
-	Text(const Text& other);
-	Text& operator=(const Text& other);
+    Text(const Text& other);
+    Text& operator=(const Text& other);
+    Text(Text&& other) noexcept = default;
+    Text& operator=(Text&& other) noexcept = default;
+    ~Text() = default;
 
-	Text(Text&& other) noexcept = default;
-	Text& operator=(Text&& other) noexcept = default;
+    int getPosition();
+    int characterCount();
 
-	int getPosition();
-	int characterCount();
+    void setLine(int line);
+    void setColumn(int column);
+    void setPosition(int line, int column);
+    void setPosition(int pos);
 
-	void allCountBefore(); // Temporary slow implementation
+    void pasteInNewLine(std::string newLine, int line);
+    void paste(std::string substr);
+    void paste(std::string substr, int column, int line);
 
-	void setLine(int line);
-	void setColumn(int column);
-	void setPosition(int line, int column);
-	void setPosition(int pos);
+    void deleteLine(int line);
+    void deleteLine();
+    void deleteMultiple(int number);
+    void deleteMultiple(int number, int line, int column);
+    void remove();
+    void remove(int line, int column);
 
-	void pasteInNewLine(std::string newLine, int line);
-	void paste(std::string substr); // Can be used for pasting OR typing
-	void paste(std::string substr, int column, int line);
+    std::string getLine(int line);
 
-	void deleteLine(int line);
-	void deleteLine();
-	void deleteMultiple(int number);
-	void deleteMultiple(int number, int line, int column);
-	void remove();
-	void remove(int line, int column);
+    void clear();
 
-	std::vector<Line> getText();
-	std::string getLine(int line);
+    ITextStorage& storage();
+    const ITextStorage& storage() const;
 
-	void clear();
+    std::string toString() const;
 
-	void setupLogger();
+private:
+    std::unique_ptr<ITextStorage> text;
+    int position = 0;
+    int currentColumn = 0;
+    int currentLine = 0;
 };
 
 #endif //CERIUM_DOCUMENT_TEXT_HPP_

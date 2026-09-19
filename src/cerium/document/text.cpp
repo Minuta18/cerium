@@ -1,61 +1,47 @@
 #include "text.hpp"
-#include <ranges>
 
-Line::Line(std::string content, int countBefore) : content(content), countBefore(countBefore) {}
+#include "storage/VectorStorage.hpp"
 
-Line::Line(std::string content) : content(content), countBefore(0) {}
+#include <stdexcept>
+#include <utility>
 
-Line::Line(const Line& other) : content(other.content), countBefore(other.countBefore) {}
+Text::Text()
+    : text(std::make_unique<cerium::document::VectorStorage>()) {}
 
-Line& Line::operator=(const Line& other) {
-    content = other.content;
-    countBefore = other.countBefore;
-    return *this;
-};
+Text::Text(std::string content)
+    : text(std::make_unique<cerium::document::VectorStorage>(content)) {}
 
-Text::Text(std::string content): position(0), currentColumn(0), currentLine(0), logger(std::make_unique<Logger>(Logging::createLogger("cerium.document.text"))) {
-	auto lines = content | std::views::split('\n');
-	text = std::ranges::to<std::vector<Line>>(lines | std::views::transform([](auto&& line) {
-		return Line(std::string(line.begin(), line.end()));
-		}));
+Text::Text(std::unique_ptr<ITextStorage> storage)
+    : text(std::move(storage)) {
+    if (!text) {
+        throw std::invalid_argument("Text: null storage");
+    }
 }
-
-Text::Text(std::vector<Line> content): text(content), position(0), currentColumn(0), currentLine(0), logger(std::make_unique<Logger>(Logging::createLogger("cerium.document.text"))) {}
 
 Text::Text(const Text& other)
-	: text(other.text),
-	position(other.position),
-	currentColumn(other.currentColumn),
-  currentLine(other.currentLine),
-	logger(std::make_unique<Logger>(Logging::createLogger("cerium.document.text"))) {
-}
+    : text(std::make_unique<cerium::document::VectorStorage>(other.toString())),
+      position(other.position),
+      currentColumn(other.currentColumn),
+      currentLine(other.currentLine) {}
 
 Text& Text::operator=(const Text& other) {
-	if (this != &other) {
-		text = other.text;
-		position = other.position;
-		currentColumn = other.currentColumn;
-    currentLine = other.currentLine;
-		logger = std::make_unique<Logger>(Logging::createLogger("cerium.document.text"));
-	}
-	return *this;
+    if (this != &other) {
+        text = std::make_unique<cerium::document::VectorStorage>(other.toString());
+        position = other.position;
+        currentColumn = other.currentColumn;
+        currentLine = other.currentLine;
+    }
+    return *this;
 }
 
 int Text::getPosition() {
-    return text[currentLine].countBefore + currentColumn;
+    return static_cast<int>(text->lineColumnToPos(
+        static_cast<std::size_t>(currentLine),
+        static_cast<std::size_t>(currentColumn)));
 }
 
 int Text::characterCount() {
-    return text.back().countBefore + static_cast<int>(text.back().content.size());
-}
-
-void Text::allCountBefore() {
-	int currentCount = 0;
-	for (size_t i = 0; i < text.size(); ++i) {
-		text[i].countBefore = currentCount;
-		currentCount += static_cast<int>(text[i].content.size());
-	}
-	logger->info("Count of symbols before each line updated");
+    return static_cast<int>(text->length());
 }
 
 void Text::setLine(int line) {
@@ -65,6 +51,7 @@ void Text::setLine(int line) {
 void Text::setColumn(int column) {
     currentColumn = column;
 }
+
 void Text::setPosition(int line, int column) {
     currentLine = line;
     currentColumn = column;
@@ -75,60 +62,80 @@ void Text::setPosition(int pos) {
 }
 
 void Text::pasteInNewLine(std::string newLine, int line) {
-    text.insert(text.begin() + line, Line(newLine, 0));
-    allCountBefore();
+    std::size_t pos = text->lineColumnToPos(
+        static_cast<std::size_t>(line), 0);
+    text->insert(pos, "\n" + newLine);
 }
 
 void Text::paste(std::string substr) {
-    text[currentLine].content.insert(currentColumn, substr);
-    allCountBefore();
+    std::size_t pos = text->lineColumnToPos(
+        static_cast<std::size_t>(currentLine),
+        static_cast<std::size_t>(currentColumn));
+    text->insert(pos, substr);
 }
 
 void Text::paste(std::string substr, int column, int line) {
-    text[line].content.insert(column, substr);
-    allCountBefore();
+    std::size_t pos = text->lineColumnToPos(
+        static_cast<std::size_t>(line),
+        static_cast<std::size_t>(column));
+    text->insert(pos, substr);
 }
 
 void Text::deleteLine(int line) {
-    text.erase(text.begin() + line);
-    allCountBefore();
+    std::size_t start = text->lineColumnToPos(
+        static_cast<std::size_t>(line), 0);
+    std::size_t end = (static_cast<std::size_t>(line) + 1 < text->lineCount())
+                          ? text->lineColumnToPos(
+                                static_cast<std::size_t>(line) + 1, 0)
+                          : text->length();
+    text->erase(start, end);
 }
 
 void Text::deleteLine() {
-    text.erase(text.begin() + currentLine);
-    allCountBefore();
+    deleteLine(currentLine);
 }
 
 void Text::deleteMultiple(int number) {
-    text[currentLine].content.erase(currentColumn, number);
+    std::size_t pos = text->lineColumnToPos(
+        static_cast<std::size_t>(currentLine),
+        static_cast<std::size_t>(currentColumn));
+    text->erase(pos, pos + static_cast<std::size_t>(number));
 }
 
 void Text::deleteMultiple(int number, int line, int column) {
-    text[line].content.erase(column, number);
+    std::size_t pos = text->lineColumnToPos(
+        static_cast<std::size_t>(line),
+        static_cast<std::size_t>(column));
+    text->erase(pos, pos + static_cast<std::size_t>(number));
 }
 
 void Text::remove() {
-    text[currentLine].content.erase(currentColumn, 1);
-    allCountBefore();
+    deleteMultiple(1);
 }
 
 void Text::remove(int line, int column) {
-    text[line].content.erase(column, 1);
-    allCountBefore();
-}
-
-std::vector<Line> Text::getText() {
-    return text;
+    deleteMultiple(1, line, column);
 }
 
 std::string Text::getLine(int line) {
-    return text[line].content;
+    return text->lineAt(static_cast<std::size_t>(line));
 }
 
 void Text::clear() {
-	text.clear();
-	currentColumn = 0;
-	currentLine = 0;
-	position = 0;
-	logger->info("Text cleared");
+    text->clear();
+    currentColumn = 0;
+    currentLine = 0;
+    position = 0;
+}
+
+ITextStorage& Text::storage() {
+    return *text;
+}
+
+const ITextStorage& Text::storage() const {
+    return *text;
+}
+
+std::string Text::toString() const {
+    return text->toString();
 }

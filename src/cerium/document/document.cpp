@@ -3,8 +3,8 @@
 Document::Document(Document&& other) noexcept :
 	path(std::move(other.path)),
 	language(std::move(other.language)),
-	isEditable(other.isEditable),
-	text(std::move(other.text)) {}
+	text(std::move(other.text)),
+	isEditable(other.isEditable) {}
 
 Document::Document(std::filesystem::path path, Text text, std::string language, bool isEditable) : path(path), language(language), isEditable(isEditable), text(text) {}
 

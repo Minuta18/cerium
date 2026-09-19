@@ -1,0 +1,2853 @@
+
+===== FILE: .gitignore =====
+CMakeLists.txt.user
+CMakeCache.txt
+CMakeFiles
+CMakeScripts
+CMakeSettings.json
+Testing
+Makefile
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+_deps
+CMakeUserPresets.json
+build
+build/
+out/
+.vs/
+
+===== FILE: CMakeLists.txt =====
+cmake_minimum_required(VERSION 3.25)
+
+project(Cerium)
+
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+option(BUILD_TESTS "Build unit tests" OFF)
+
+add_subdirectory(src)
+
+if(BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
+
+
+===== FILE: README.md =====
+# cerium
+Cerium++ is free professional grade IDE designed specifically for C and C++.
+
+
+===== FILE: scan.py =====
+import os
+import sys
+
+# Папки, которые игнорируем
+IGNORE_DIRS = {
+    ".git", ".github", ".vs", ".vscode", ".idea",
+    "build", "out", "bin", "obj", "cmake-build-debug", "cmake-build-release",
+    "node_modules", "__pycache__", ".cache", "vendor", "third_party", "external"
+}
+
+# Расширения/имена файлов, которые игнорируем (бинарники, кэш и т.п.)
+IGNORE_EXT = {
+    ".exe", ".dll", ".so", ".dylib", ".o", ".obj", ".a", ".lib",
+    ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".ico", ".svg",
+    ".zip", ".tar", ".gz", ".7z", ".rar",
+    ".pdf", ".doc", ".docx", ".xls", ".xlsx",
+    ".pyc", ".pyo", ".pdb", ".ilk", ".exp",
+    ".db", ".sqlite", ".sqlite3",
+    ".lock"
+}
+
+IGNORE_FILES = {"dump.txt", ".DS_Store", "Thumbs.db"}
+
+# Максимальный размер файла (в байтах) — чтобы не тянуть гигантов
+MAX_FILE_SIZE = 512 * 1024  # 512 KB
+
+
+def should_skip_dir(name):
+    return name in IGNORE_DIRS or name.startswith(".")
+
+
+def should_skip_file(name):
+    if name in IGNORE_FILES:
+        return True
+    _, ext = os.path.splitext(name)
+    if ext.lower() in IGNORE_EXT:
+        return True
+    return False
+
+
+def is_text_file(path):
+    try:
+        with open(path, "rb") as f:
+            chunk = f.read(1024)
+        if b"\x00" in chunk:
+            return False
+        chunk.decode("utf-8")
+        return True
+    except Exception:
+        return False
+
+
+def dump_project(root, output):
+    root = os.path.abspath(root)
+    with open(output, "w", encoding="utf-8") as out:
+        for dirpath, dirnames, filenames in os.walk(root):
+            # фильтруем директории на месте
+            dirnames[:] = [d for d in dirnames if not should_skip_dir(d)]
+
+            for fname in sorted(filenames):
+                if should_skip_file(fname):
+                    continue
+                full = os.path.join(dirpath, fname)
+                rel = os.path.relpath(full, root).replace("\\", "/")
+
+                try:
+                    size = os.path.getsize(full)
+                except OSError:
+                    continue
+                if size > MAX_FILE_SIZE:
+                    out.write(f"\n===== FILE: {rel} (SKIPPED, {size} bytes) =====\n")
+                    continue
+                if not is_text_file(full):
+                    out.write(f"\n===== FILE: {rel} (BINARY, skipped) =====\n")
+                    continue
+
+                out.write(f"\n===== FILE: {rel} =====\n")
+                try:
+                    with open(full, "r", encoding="utf-8", errors="replace") as f:
+                        out.write(f.read())
+                except Exception as e:
+                    out.write(f"[read error: {e}]\n")
+                out.write("\n")
+
+
+if __name__ == "__main__":
+    root = sys.argv[1] if len(sys.argv) > 1 else "."
+    output = sys.argv[2] if len(sys.argv) > 2 else "dump.txt"
+    dump_project(root, output)
+    print(f"Готово: {output}")
+
+===== FILE: src/CMakeLists.txt =====
+add_library(Cerium)
+
+target_sources(Cerium
+    PRIVATE
+        cerium/debug/logging/LogLevel.cpp
+        cerium/debug/logging/Logger.cpp
+        cerium/debug/logging/LoggerMiddleware.cpp
+        cerium/debug/logging/ConsoleLoggerMiddleware.cpp
+        cerium/debug/logging/FileLoggerMiddleware.cpp
+        cerium/debug/logging/LoggerFilePool.cpp
+        cerium/debug/logging/Logging.cpp
+        application.cpp
+        cerium/project/project.cpp
+        cerium/document/document.cpp
+        cerium/time/Clock.cpp
+        cerium/document/text.cpp
+        cerium/document/TextHistory.cpp
+        cerium/document/line.cpp
+        cerium/document/storage/VectorStorage.cpp
+        cerium/document/storage/RopeStorage.cpp
+        cerium/document/rope/Rope.cpp
+        cerium/document/rope/RopeNode.cpp
+)
+
+target_include_directories(Cerium
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/cerium
+)
+
+add_executable(CeriumApp
+    main.cpp
+)
+
+target_link_libraries(CeriumApp
+    PRIVATE
+        Cerium
+)
+
+if(MSVC)
+    target_compile_options(Cerium PRIVATE
+        /W4
+        /WX
+    )
+else()
+    target_compile_options(Cerium PRIVATE
+        -Wall
+        -Wextra
+        -Wpedantic
+        -Werror
+        -Wno-error=reorder
+    )
+endif()
+
+
+===== FILE: src/application.cpp =====
+#include "application.hpp"
+
+
+Application::Application() {
+	project = std::make_unique<Project>("project");
+
+	setupLogger();
+
+	logger->info("App initialized successfully");
+}
+
+void Application::run() {
+	logger->info("App started");
+}
+
+void Application::quit() {
+	logger->info("App quitting");
+}
+
+void Application::setupLogger() {
+	auto consoleMiddleware = std::make_shared<ConsoleLoggerMiddleware>();
+	auto fileMiddleware = std::make_shared<FileLoggerMiddleware>("log.txt");
+
+	LoggerConfig cfg;
+	cfg.middlewares.push_back(consoleMiddleware);
+	cfg.middlewares.push_back(fileMiddleware);
+
+	Logging::setDefaultConfig(std::move(cfg));
+
+	logger = std::make_unique<Logger>(Logging::createLogger("cerium.application"));
+}
+
+
+Application::~Application() {
+	logger->info("App terminated sucessfully");
+}
+
+
+===== FILE: src/application.hpp =====
+#ifndef APPLICATION_HPP_
+#define APPLICATION_HPP_
+
+#include "cerium/project/project.hpp"
+
+#include <memory>
+#include <filesystem>
+
+#include "cerium/debug/logging/ConsoleLoggerMiddleware.hpp"
+#include "cerium/debug/logging/FileLoggerMiddleware.hpp"
+#include "cerium/debug/logging/Logger.hpp"
+#include "cerium/debug/logging/LoggerConfig.hpp"
+#include "cerium/debug/logging/Logging.hpp"
+
+
+class Application {
+private:
+    std::unique_ptr<Project> project;
+
+    std::unique_ptr<Logger> logger;
+public:
+    Application();
+
+    void run();
+    void setupLogger();
+    void quit();
+
+    ~Application();
+};
+
+#endif //CERIUM_PROJECT_APPLICATION_HPP_
+
+
+===== FILE: src/main.cpp =====
+#include "cerium/debug/logging/Logging.hpp"
+#include "cerium/debug/logging/ConsoleLoggerMiddleware.hpp"
+#include "cerium/debug/logging/FileLoggerMiddleware.hpp"
+#include "application.hpp"
+
+#include <iostream>
+
+int main() {
+    auto console = std::make_shared<ConsoleLoggerMiddleware>();
+    auto file = std::make_shared<FileLoggerMiddleware>("log.txt");
+
+    LoggerConfig cfg;
+    cfg.middlewares.push_back(console);
+    cfg.middlewares.push_back(file);
+
+    Logging::setDefaultConfig(std::move(cfg));
+
+    auto logger = Logging::createLogger("cerium.main");
+
+    logger.info("test");
+
+    try {
+        Application app;
+        app.run();
+    } catch (std::exception& e) {
+		logger.error("Fatal exception: {}", e.what());
+        std::cerr << "Fatal exception: " << e.what() << std::endl;
+    }
+
+
+    return 0;
+}
+
+
+===== FILE: src/cerium/debug/logging/ConsoleLoggerMiddleware.cpp =====
+#include "ConsoleLoggerMiddleware.hpp"
+#include <iostream>
+
+void ConsoleLoggerMiddleware::log(const Log& log) {
+    if (log.level == LogLevel::Error || log.level == LogLevel::Fatal)
+        std::cerr << formatLog(log) << '\n' << std::flush;
+    else
+        std::cout << formatLog(log) << '\n';
+}
+
+
+===== FILE: src/cerium/debug/logging/ConsoleLoggerMiddleware.hpp =====
+#ifndef CERIUM_DEBUG_LOGGING_CONSOLELOGGERMIDDLEWARE_HPP_
+#define CERIUM_DEBUG_LOGGING_CONSOLELOGGERMIDDLEWARE_HPP_
+
+#include "LoggerMiddleware.hpp"
+
+class ConsoleLoggerMiddleware : public LoggerMiddleware {
+public:
+    explicit ConsoleLoggerMiddleware() = default;
+
+    void log(const Log& log) override;
+};
+
+#endif // CERIUM_DEBUG_LOGGING_CONSOLELOGGERMIDDLEWARE_HPP_
+
+
+===== FILE: src/cerium/debug/logging/FileLoggerMiddleware.cpp =====
+#include "FileLoggerMiddleware.hpp"
+#include "LoggerFilePool.hpp"
+
+FileLoggerMiddleware::FileLoggerMiddleware(std::filesystem::path path) :
+    file(LoggerFilePool::getFile(path)) {
+    if (!file->is_open()) {
+        throw std::runtime_error("Failed to open log file");
+    }
+}
+
+void FileLoggerMiddleware::log(const Log& log) {
+    *file << formatLog(log) << '\n';
+}
+
+
+===== FILE: src/cerium/debug/logging/FileLoggerMiddleware.hpp =====
+#ifndef CERIUM_DEBUG_LOGGING_FILELOGGERMIDDLEWARE_HPP_
+#define CERIUM_DEBUG_LOGGING_FILELOGGERMIDDLEWARE_HPP_
+
+#include "LoggerMiddleware.hpp"
+
+#include <filesystem>
+#include <fstream>
+#include <memory>
+
+class FileLoggerMiddleware : public LoggerMiddleware {
+    std::shared_ptr<std::ofstream> file;
+
+public:
+    explicit FileLoggerMiddleware(std::filesystem::path path);
+
+    void log(const Log& log) override;
+};
+
+#endif // CERIUM_DEBUG_LOGGING_FILELOGGERMIDDLEWARE_HPP_
+
+
+===== FILE: src/cerium/debug/logging/Log.hpp =====
+#ifndef CERIUM_DEBUG_LOGGING_LOG_HPP_
+#define CERIUM_DEBUG_LOGGING_LOG_HPP_
+
+#include "LogLevel.hpp"
+
+#include <string>
+
+struct Log {
+    std::string name;
+    std::string time;
+    LogLevel level;
+    std::string message;
+};
+
+#endif // CERIUM_DEBUG_LOGGING_LOG_HPP_
+
+
+===== FILE: src/cerium/debug/logging/LogLevel.cpp =====
+#include "LogLevel.hpp"
+
+std::string logLevelToString(LogLevel level) {
+    switch (level) {
+        case LogLevel::Debug:
+            return "DEBUG";
+        case LogLevel::Info:
+            return "INFO";
+        case LogLevel::Warn:
+            return "WARN";
+        case LogLevel::Error:
+            return "ERROR";
+        case LogLevel::Fatal:
+            return "FATAL";
+    }
+
+    return "UNKNOWN";
+}
+
+
+===== FILE: src/cerium/debug/logging/LogLevel.hpp =====
+#ifndef CERIUM_DEBUG_LOGGING_LOGLEVEL_HPP_
+#define CERIUM_DEBUG_LOGGING_LOGLEVEL_HPP_
+
+#include <string>
+
+enum class LogLevel { Debug, Info, Warn, Error, Fatal };
+
+std::string logLevelToString(LogLevel level);
+
+#endif // CERIUM_DEBUG_LOGGING_LOGLEVEL_HPP_
+
+
+===== FILE: src/cerium/debug/logging/Logger.cpp =====
+#include "Logger.hpp"
+#include "../../time/Clock.hpp"
+
+Logger::Logger(std::string _loggerName, LoggerConfig _cfg) :
+    loggerName(std::move(_loggerName)), cfg(std::move(_cfg)) {
+}
+
+Log Logger::createLog(LogLevel level, const std::string& message) const {
+    return {
+        .name = loggerName,
+        .time = Clock::getFormattedCurrentTime(),
+        .level = level,
+        .message = message
+    };
+}
+
+
+===== FILE: src/cerium/debug/logging/Logger.hpp =====
+#ifndef CERIUM_DEBUG_LOGGING_LOGGER_HPP_
+#define CERIUM_DEBUG_LOGGING_LOGGER_HPP_
+
+#include <format>
+#include <string>
+#include <utility>
+
+#include "Log.hpp"
+#include "LoggerConfig.hpp"
+
+class Logger {
+    std::string loggerName;
+    LoggerConfig cfg;
+
+    Log createLog(LogLevel level, const std::string& message) const;
+
+    template <typename... Args>
+    void log(LogLevel level, const std::string& message, Args&&... args);
+
+public:
+    explicit Logger(std::string _loggerName, LoggerConfig _cfg);
+
+    template <typename... Args> void debug(const std::string& message, Args&&... args);
+
+    template <typename... Args> void info(const std::string& message, Args&&... args);
+
+    template <typename... Args> void warn(const std::string& message, Args&&... args);
+
+    template <typename... Args> void error(const std::string& message, Args&&... args);
+
+    template <typename... Args> void fatal(const std::string& message, Args&&... args);
+};
+
+template <typename... Args> void Logger::debug(const std::string& message, Args&&... args) {
+    log(LogLevel::Debug, message, std::forward<Args>(args)...);
+}
+
+template <typename... Args> void Logger::info(const std::string& message, Args&&... args) {
+    log(LogLevel::Info, message, std::forward<Args>(args)...);
+}
+
+template <typename... Args> void Logger::warn(const std::string& message, Args&&... args) {
+    log(LogLevel::Warn, message, std::forward<Args>(args)...);
+}
+
+template <typename... Args> void Logger::error(const std::string& message, Args&&... args) {
+    log(LogLevel::Error, message, std::forward<Args>(args)...);
+}
+
+template <typename... Args> void Logger::fatal(const std::string& message, Args&&... args) {
+    log(LogLevel::Fatal, message, std::forward<Args>(args)...);
+}
+
+template <typename... Args>
+void Logger::log(LogLevel level, const std::string& message, Args&&... args) {
+    if (static_cast<int>(level) < static_cast<int>(cfg.level)) {
+        return;
+    }
+
+    std::string completedMessage = std::vformat(message, std::make_format_args(args...));
+    Log entry = createLog(level, completedMessage);
+
+    for (const auto& middleware : cfg.middlewares) {
+        if (!middleware)
+            continue;
+        middleware->log(entry);
+    }
+}
+
+#endif // CERIUM_DEBUG_LOGGING_LOGGER_HPP_
+
+
+===== FILE: src/cerium/debug/logging/LoggerConfig.hpp =====
+#ifndef CERIUM_DEBUG_LOGGING_LOGGERCONFIG_HPP_
+#define CERIUM_DEBUG_LOGGING_LOGGERCONFIG_HPP_
+
+#include <memory>
+#include <vector>
+
+#include "LoggerMiddleware.hpp"
+#include "LogLevel.hpp"
+
+struct LoggerConfig {
+    LogLevel level = LogLevel::Info;
+    std::vector<std::shared_ptr<LoggerMiddleware>> middlewares;
+};
+
+#endif // CERIUM_DEBUG_LOGGING_LOGGERCONFIG_HPP_
+
+
+===== FILE: src/cerium/debug/logging/LoggerFilePool.cpp =====
+#include "LoggerFilePool.hpp"
+#include <fstream>
+#include <memory>
+
+std::unordered_map<std::filesystem::path, std::shared_ptr<std::ofstream>> LoggerFilePool::files{};
+
+std::shared_ptr<std::ofstream> LoggerFilePool::getFile(const std::filesystem::path& path) {
+    auto it = files.find(path);
+
+    if (it != files.end()) {
+        return it->second;
+    }
+
+    auto file = std::make_shared<std::ofstream>(path, std::ios::app);
+
+    if (!file->is_open()) {
+        return nullptr;
+    }
+
+    files.emplace(path, file);
+
+    return file;
+}
+
+
+===== FILE: src/cerium/debug/logging/LoggerFilePool.hpp =====
+#ifndef CERIUM_DEBUG_LOGGING_LOGGERFILEPOOL_HPP_
+#define CERIUM_DEBUG_LOGGING_LOGGERFILEPOOL_HPP_
+
+#include <filesystem>
+#include <fstream>
+#include <memory>
+#include <unordered_map>
+
+class LoggerFilePool {
+    static std::unordered_map<std::filesystem::path, std::shared_ptr<std::ofstream>> files;
+
+public:
+    static std::shared_ptr<std::ofstream> getFile(const std::filesystem::path& path);
+};
+
+#endif
+
+
+===== FILE: src/cerium/debug/logging/LoggerMiddleware.cpp =====
+#include "LoggerMiddleware.hpp"
+
+#include <format>
+
+std::string LoggerMiddleware::formatLog(const Log& log) {
+    return std::format(
+        "[{}]\t[{}]\t[{}]\t{}",
+        log.time,
+        logLevelToString(log.level),
+        log.name,
+        log.message
+    );
+}
+
+
+===== FILE: src/cerium/debug/logging/LoggerMiddleware.hpp =====
+#ifndef CERIUM_DEBUG_LOGGING_LOGGERMIDDLEWARE_HPP_
+#define CERIUM_DEBUG_LOGGING_LOGGERMIDDLEWARE_HPP_
+
+#include "Log.hpp"
+
+class LoggerMiddleware {
+public:
+    virtual ~LoggerMiddleware() = default;
+
+    virtual void log(const Log& log) = 0;
+
+protected:
+    std::string formatLog(const Log& log);
+};
+
+#endif // CERIUM_DEBUG_LOGGING_LOGGERMIDDLEWARE_HPP_
+
+
+===== FILE: src/cerium/debug/logging/Logging.cpp =====
+#include "Logging.hpp"
+
+namespace Logging {
+
+static LoggerConfig defaultConfig;
+
+void setDefaultConfig(const LoggerConfig& cfg) {
+    defaultConfig = cfg;
+}
+
+Logger createLogger(std::string loggerName) {
+    return Logger(std::move(loggerName), defaultConfig);
+}
+
+} // namespace Logging
+
+
+===== FILE: src/cerium/debug/logging/Logging.hpp =====
+#ifndef CERIUM_DEBUG_LOGGING_LOGGING_HPP_
+#define CERIUM_DEBUG_LOGGING_LOGGING_HPP_
+
+#include "Logger.hpp"
+#include "LoggerConfig.hpp"
+
+namespace Logging {
+
+void setDefaultConfig(const LoggerConfig& cfg);
+
+Logger createLogger(std::string loggerName);
+
+} // namespace Logging
+
+#endif // CERIUM_DEBUG_LOGGING_LOGGING_HPP_
+
+
+===== FILE: src/cerium/document/TextHistory.cpp =====
+#include "TextHistory.hpp"
+
+#include <stdexcept>
+#include <utility>
+
+void TextHistory::Transaction::pushInsert(size_t line, size_t column, std::string text) {
+    changes.push_back(
+        {.type = ChangeType::Insert, .line = line, .column = column, .text = std::move(text)});
+}
+
+void TextHistory::Transaction::pushDelete(size_t line, size_t column, std::string text) {
+    changes.push_back(
+        {.type = ChangeType::Delete, .line = line, .column = column, .text = std::move(text)});
+}
+
+bool TextHistory::canUndo() const {
+    return current > 0;
+}
+
+bool TextHistory::canRedo() const {
+    return current < history.size();
+}
+
+void TextHistory::undo(Text& text) {
+    if (!canUndo())
+        throw std::runtime_error("nothing to undo");
+
+    --current;
+    const Transaction& transaction = history[current];
+
+    for (auto it = transaction.changes.rbegin(); it != transaction.changes.rend(); ++it) {
+        const Change& change = *it;
+
+        if (change.type == ChangeType::Insert) {
+            text.deleteMultiple(change.text.size(), change.line, change.column);
+        } else {
+            text.paste(change.text, change.column, change.line);
+        }
+    }
+}
+
+void TextHistory::redo(Text& text) {
+    if (!canRedo())
+        throw std::runtime_error("nothing to redo");
+
+    const Transaction& transaction = history[current];
+    for (const Change& change : transaction.changes) {
+        if (change.type == ChangeType::Insert) {
+            text.paste(change.text, change.column, change.line);
+        } else {
+            text.deleteMultiple(change.text.size(), change.line, change.column);
+        }
+    }
+
+    ++current;
+}
+
+void TextHistory::submit(Transaction& transaction) {
+    history.erase(history.begin() + current, history.end());
+    history.push_back(std::move(transaction));
+    ++current;
+}
+
+void TextHistory::submitInsert(size_t line, size_t column, std::string text) {
+    Transaction transaction;
+    transaction.pushInsert(line, column, std::move(text));
+    submit(transaction);
+}
+
+void TextHistory::submitDelete(size_t line, size_t column, std::string text) {
+    Transaction transaction;
+    transaction.pushDelete(line, column, std::move(text));
+    submit(transaction);
+}
+
+
+===== FILE: src/cerium/document/TextHistory.hpp =====
+#ifndef CERIUM_DOCUMENT_TEXTHISTORY_HPP_
+#define CERIUM_DOCUMENT_TEXTHISTORY_HPP_
+
+#include "text.hpp"
+
+#include <vector>
+#include <cstddef>
+#include <string>
+
+class TextHistory {
+public:
+    enum class ChangeType { Insert, Delete };
+
+    struct Change {
+        ChangeType type;
+
+        size_t line;
+        size_t column;
+
+        std::string text;
+    };
+
+    struct Transaction {
+        void pushInsert(size_t line, size_t column, std::string text);
+        void pushDelete(size_t line, size_t column, std::string text);
+        std::vector<Change> changes;
+    };
+    bool canUndo() const;
+    bool canRedo() const;
+
+    void undo(Text& text);
+    void redo(Text& text);
+
+    void submit(Transaction& transaction);
+    void submitInsert(size_t line, size_t column, std::string text);
+    void submitDelete(size_t line, size_t column, std::string text);
+
+private:
+    std::vector<Transaction> history;
+    size_t current = 0;
+};
+
+#endif // CERIUM_DOCUMENT_TEXTHISTORY_HPP_
+
+
+===== FILE: src/cerium/document/document.cpp =====
+#include "document.hpp"
+
+Document::Document(Document&& other) noexcept :
+	path(std::move(other.path)),
+	language(std::move(other.language)),
+	text(std::move(other.text)),
+	isEditable(other.isEditable) {}
+
+Document::Document(std::filesystem::path path, Text text, std::string language, bool isEditable) : path(path), language(language), isEditable(isEditable), text(text) {}
+
+Document& Document::operator=(Document&& other) noexcept {
+    if (this != &other) {
+        path = std::move(other.path);
+        language = std::move(other.language);
+        text = std::move(other.text);
+        isEditable = other.isEditable;
+    }
+    return *this;
+}
+
+
+===== FILE: src/cerium/document/document.hpp =====
+#ifndef CERIUM_DOCUMENT_DOCUMENT_HPP_
+#define CERIUM_DOCUMENT_DOCUMENT_HPP_
+
+#include <string>
+#include "text.hpp"
+#include <filesystem>
+
+class Document {
+	friend class Project;
+private:
+	std::filesystem::path path;
+	std::string language = "txt";
+	Text text;
+	bool isEditable = true;
+
+	Document(Document&& other) noexcept;
+	Document(std::filesystem::path path, Text text, std::string language = "txt", bool isEditable = true);
+public:
+	Document(const Document&) = delete;
+
+	Document& operator=(const Document&) = delete;
+	Document& operator=(Document&& other) noexcept;
+
+	~Document() = default;
+};
+
+#endif //CERIUM_DOCUMENT_DOCUMENT_HPP_
+
+
+===== FILE: src/cerium/document/line.cpp =====
+#include "line.hpp"
+
+Line::Line(std::string content, int countBefore)
+    : content(content), countBefore(countBefore) {}
+
+Line::Line(std::string content) : content(content), countBefore(0) {}
+
+Line::Line(const Line& other)
+    : content(other.content), countBefore(other.countBefore) {}
+
+Line& Line::operator=(const Line& other) {
+    content = other.content;
+    countBefore = other.countBefore;
+    return *this;
+}
+
+===== FILE: src/cerium/document/line.hpp =====
+#ifndef CERIUM_DOCUMENT_LINE_HPP_
+#define CERIUM_DOCUMENT_LINE_HPP_
+
+#include <string>
+
+struct Line {
+    Line(std::string content, int countBefore);
+    Line(std::string content);
+    Line(const Line& other);
+
+    Line& operator=(const Line& other);
+
+    std::string content;
+    int countBefore;
+};
+
+#endif
+
+===== FILE: src/cerium/document/text.cpp =====
+#include "text.hpp"
+
+#include "storage/VectorStorage.hpp"
+
+#include <stdexcept>
+#include <utility>
+
+Text::Text()
+    : text(std::make_unique<cerium::document::VectorStorage>()) {}
+
+Text::Text(std::string content)
+    : text(std::make_unique<cerium::document::VectorStorage>(content)) {}
+
+Text::Text(std::unique_ptr<ITextStorage> storage)
+    : text(std::move(storage)) {
+    if (!text) {
+        throw std::invalid_argument("Text: null storage");
+    }
+}
+
+Text::Text(const Text& other)
+    : text(std::make_unique<cerium::document::VectorStorage>(other.toString())),
+      position(other.position),
+      currentColumn(other.currentColumn),
+      currentLine(other.currentLine) {}
+
+Text& Text::operator=(const Text& other) {
+    if (this != &other) {
+        text = std::make_unique<cerium::document::VectorStorage>(other.toString());
+        position = other.position;
+        currentColumn = other.currentColumn;
+        currentLine = other.currentLine;
+    }
+    return *this;
+}
+
+int Text::getPosition() {
+    return static_cast<int>(text->lineColumnToPos(
+        static_cast<std::size_t>(currentLine),
+        static_cast<std::size_t>(currentColumn)));
+}
+
+int Text::characterCount() {
+    return static_cast<int>(text->length());
+}
+
+void Text::setLine(int line) {
+    currentLine = line;
+}
+
+void Text::setColumn(int column) {
+    currentColumn = column;
+}
+
+void Text::setPosition(int line, int column) {
+    currentLine = line;
+    currentColumn = column;
+}
+
+void Text::setPosition(int pos) {
+    position = pos;
+}
+
+void Text::pasteInNewLine(std::string newLine, int line) {
+    std::size_t pos = text->lineColumnToPos(
+        static_cast<std::size_t>(line), 0);
+    text->insert(pos, "\n" + newLine);
+}
+
+void Text::paste(std::string substr) {
+    std::size_t pos = text->lineColumnToPos(
+        static_cast<std::size_t>(currentLine),
+        static_cast<std::size_t>(currentColumn));
+    text->insert(pos, substr);
+}
+
+void Text::paste(std::string substr, int column, int line) {
+    std::size_t pos = text->lineColumnToPos(
+        static_cast<std::size_t>(line),
+        static_cast<std::size_t>(column));
+    text->insert(pos, substr);
+}
+
+void Text::deleteLine(int line) {
+    std::size_t start = text->lineColumnToPos(
+        static_cast<std::size_t>(line), 0);
+    std::size_t end = (static_cast<std::size_t>(line) + 1 < text->lineCount())
+                          ? text->lineColumnToPos(
+                                static_cast<std::size_t>(line) + 1, 0)
+                          : text->length();
+    text->erase(start, end);
+}
+
+void Text::deleteLine() {
+    deleteLine(currentLine);
+}
+
+void Text::deleteMultiple(int number) {
+    std::size_t pos = text->lineColumnToPos(
+        static_cast<std::size_t>(currentLine),
+        static_cast<std::size_t>(currentColumn));
+    text->erase(pos, pos + static_cast<std::size_t>(number));
+}
+
+void Text::deleteMultiple(int number, int line, int column) {
+    std::size_t pos = text->lineColumnToPos(
+        static_cast<std::size_t>(line),
+        static_cast<std::size_t>(column));
+    text->erase(pos, pos + static_cast<std::size_t>(number));
+}
+
+void Text::remove() {
+    deleteMultiple(1);
+}
+
+void Text::remove(int line, int column) {
+    deleteMultiple(1, line, column);
+}
+
+std::string Text::getLine(int line) {
+    return text->lineAt(static_cast<std::size_t>(line));
+}
+
+void Text::clear() {
+    text->clear();
+    currentColumn = 0;
+    currentLine = 0;
+    position = 0;
+}
+
+ITextStorage& Text::storage() {
+    return *text;
+}
+
+const ITextStorage& Text::storage() const {
+    return *text;
+}
+
+std::string Text::toString() const {
+    return text->toString();
+}
+
+===== FILE: src/cerium/document/text.hpp =====
+#ifndef CERIUM_DOCUMENT_TEXT_HPP_
+#define CERIUM_DOCUMENT_TEXT_HPP_
+
+#include "storage/ITextStorage.hpp"
+
+#include <memory>
+#include <string>
+
+using cerium::document::ITextStorage;
+
+class Text {
+public:
+    Text();
+    explicit Text(std::string content);
+    explicit Text(std::unique_ptr<ITextStorage> storage);
+
+    Text(const Text& other);
+    Text& operator=(const Text& other);
+    Text(Text&& other) noexcept = default;
+    Text& operator=(Text&& other) noexcept = default;
+    ~Text() = default;
+
+    int getPosition();
+    int characterCount();
+
+    void setLine(int line);
+    void setColumn(int column);
+    void setPosition(int line, int column);
+    void setPosition(int pos);
+
+    void pasteInNewLine(std::string newLine, int line);
+    void paste(std::string substr);
+    void paste(std::string substr, int column, int line);
+
+    void deleteLine(int line);
+    void deleteLine();
+    void deleteMultiple(int number);
+    void deleteMultiple(int number, int line, int column);
+    void remove();
+    void remove(int line, int column);
+
+    std::string getLine(int line);
+
+    void clear();
+
+    ITextStorage& storage();
+    const ITextStorage& storage() const;
+
+    std::string toString() const;
+
+private:
+    std::unique_ptr<ITextStorage> text;
+    int position = 0;
+    int currentColumn = 0;
+    int currentLine = 0;
+};
+
+#endif //CERIUM_DOCUMENT_TEXT_HPP_
+
+===== FILE: src/cerium/document/text_legacy.cpp =====
+#include "text_legacy.hpp"
+#include <ranges>
+
+Line::Line(std::string content, int countBefore) : content(content), countBefore(countBefore) {}
+
+Line::Line(std::string content) : content(content), countBefore(0) {}
+
+Line::Line(const Line& other) : content(other.content), countBefore(other.countBefore) {}
+
+Line& Line::operator=(const Line& other) {
+    content = other.content;
+    countBefore = other.countBefore;
+    return *this;
+};
+
+Text::Text(std::string content): position(0), currentColumn(0), currentLine(0), logger(std::make_unique<Logger>(Logging::createLogger("cerium.document.text"))) {
+	auto lines = content | std::views::split('\n');
+	text = std::ranges::to<std::vector<Line>>(lines | std::views::transform([](auto&& line) {
+		return Line(std::string(line.begin(), line.end()));
+		}));
+}
+
+Text::Text(std::vector<Line> content): text(content), position(0), currentColumn(0), currentLine(0), logger(std::make_unique<Logger>(Logging::createLogger("cerium.document.text"))) {}
+
+Text::Text(const Text& other)
+	: text(other.text),
+	position(other.position),
+	currentColumn(other.currentColumn),
+  currentLine(other.currentLine),
+	logger(std::make_unique<Logger>(Logging::createLogger("cerium.document.text"))) {
+}
+
+Text& Text::operator=(const Text& other) {
+	if (this != &other) {
+		text = other.text;
+		position = other.position;
+		currentColumn = other.currentColumn;
+    currentLine = other.currentLine;
+		logger = std::make_unique<Logger>(Logging::createLogger("cerium.document.text"));
+	}
+	return *this;
+}
+
+int Text::getPosition() {
+    return text[currentLine].countBefore + currentColumn;
+}
+
+int Text::characterCount() {
+    return text.back().countBefore + static_cast<int>(text.back().content.size());
+}
+
+void Text::allCountBefore() {
+	int currentCount = 0;
+	for (size_t i = 0; i < text.size(); ++i) {
+		text[i].countBefore = currentCount;
+		currentCount += static_cast<int>(text[i].content.size());
+	}
+	logger->info("Count of symbols before each line updated");
+}
+
+void Text::setLine(int line) {
+    currentLine = line;
+}
+
+void Text::setColumn(int column) {
+    currentColumn = column;
+}
+void Text::setPosition(int line, int column) {
+    currentLine = line;
+    currentColumn = column;
+}
+
+void Text::setPosition(int pos) {
+    position = pos;
+}
+
+void Text::pasteInNewLine(std::string newLine, int line) {
+    text.insert(text.begin() + line, Line(newLine, 0));
+    allCountBefore();
+}
+
+void Text::paste(std::string substr) {
+    text[currentLine].content.insert(currentColumn, substr);
+    allCountBefore();
+}
+
+void Text::paste(std::string substr, int column, int line) {
+    text[line].content.insert(column, substr);
+    allCountBefore();
+}
+
+void Text::deleteLine(int line) {
+    text.erase(text.begin() + line);
+    allCountBefore();
+}
+
+void Text::deleteLine() {
+    text.erase(text.begin() + currentLine);
+    allCountBefore();
+}
+
+void Text::deleteMultiple(int number) {
+    text[currentLine].content.erase(currentColumn, number);
+}
+
+void Text::deleteMultiple(int number, int line, int column) {
+    text[line].content.erase(column, number);
+}
+
+void Text::remove() {
+    text[currentLine].content.erase(currentColumn, 1);
+    allCountBefore();
+}
+
+void Text::remove(int line, int column) {
+    text[line].content.erase(column, 1);
+    allCountBefore();
+}
+
+std::vector<Line> Text::getText() {
+    return text;
+}
+
+std::string Text::getLine(int line) {
+    return text[line].content;
+}
+
+void Text::clear() {
+	text.clear();
+	currentColumn = 0;
+	currentLine = 0;
+	position = 0;
+	logger->info("Text cleared");
+}
+
+
+===== FILE: src/cerium/document/text_legacy.hpp =====
+#ifndef CERIUM_DOCUMENT_TEXT_LEGACY_HPP_
+#define CERIUM_DOCUMENT_TEXT_LEGACY_HPP_
+
+#include "line.hpp"
+
+#include <vector>
+#include <string>
+#include <memory>
+
+#include "../debug/logging/ConsoleLoggerMiddleware.hpp"
+#include "../debug/logging/FileLoggerMiddleware.hpp"
+#include "../debug/logging/Logger.hpp"
+#include "../debug/logging/LoggerConfig.hpp"
+#include "../debug/logging/Logging.hpp"
+
+class TextLegacy {
+private:
+    std::vector<Line> text;
+    int position;
+    int currentColumn;
+    int currentLine;
+    std::unique_ptr<Logger> logger;
+public:
+    TextLegacy(std::string content);
+    TextLegacy(std::vector<Line> content);
+
+    TextLegacy(const TextLegacy& other);
+    TextLegacy& operator=(const TextLegacy& other);
+
+    TextLegacy(TextLegacy&& other) noexcept = default;
+    TextLegacy& operator=(TextLegacy&& other) noexcept = default;
+
+    int getPosition();
+    int characterCount();
+
+    void allCountBefore();
+
+    void setLine(int line);
+    void setColumn(int column);
+    void setPosition(int line, int column);
+    void setPosition(int pos);
+
+    void pasteInNewLine(std::string newLine, int line);
+    void paste(std::string substr);
+    void paste(std::string substr, int column, int line);
+
+    void deleteLine(int line);
+    void deleteLine();
+    void deleteMultiple(int number);
+    void deleteMultiple(int number, int line, int column);
+    void remove();
+    void remove(int line, int column);
+
+    std::vector<Line> getText();
+    std::string getLine(int line);
+
+    void clear();
+};
+
+#endif // CERIUM_DOCUMENT_TEXT_LEGACY_HPP_
+
+===== FILE: src/cerium/document/rope/Rope.cpp =====
+#include "Rope.hpp"
+
+#include <cassert>
+#include <stdexcept>
+#include <utility>
+
+namespace cerium::document {
+
+namespace {
+
+constexpr std::size_t LEAF_MAX_SIZE = 1024;
+
+std::unique_ptr<RopeNode> cloneNode(const RopeNode* node) {
+    assert(node != nullptr);
+    if (node->isLeaf()) {
+        return RopeNode::makeLeaf(node->leaf);
+    }
+    auto left = cloneNode(node->left.get());
+    auto right = cloneNode(node->right.get());
+    return RopeNode::makeInternal(std::move(left), std::move(right));
+}
+
+void collectRange(const RopeNode* node, std::size_t nodeStart,
+                  std::size_t begin, std::size_t end, std::string& out) {
+    assert(node != nullptr);
+    std::size_t nodeLen = RopeNode::nodeLength(node);
+    std::size_t nodeEnd = nodeStart + nodeLen;
+
+    if (nodeEnd <= begin || nodeStart >= end) {
+        return;
+    }
+
+    if (node->isLeaf()) {
+        std::size_t from = begin > nodeStart ? begin - nodeStart : 0;
+        std::size_t to = end < nodeEnd ? end - nodeStart : node->leaf.size();
+        out.append(node->leaf, from, to - from);
+        return;
+    }
+
+    std::size_t leftLen = node->weight;
+    collectRange(node->left.get(), nodeStart, begin, end, out);
+    collectRange(node->right.get(), nodeStart + leftLen, begin, end, out);
+}
+
+std::optional<std::size_t>
+findCharInNode(const RopeNode* node, char c, std::size_t from) {
+    assert(node != nullptr);
+
+    if (node->isLeaf()) {
+        auto pos = node->leaf.find(c, from);
+        if (pos == std::string::npos) {
+            return std::nullopt;
+        }
+        return pos;
+    }
+
+    std::size_t leftLen = node->weight;
+
+    if (from < leftLen) {
+        auto res = findCharInNode(node->left.get(), c, from);
+        if (res.has_value()) {
+            return res;
+        }
+        auto resRight = findCharInNode(node->right.get(), c, 0);
+        if (resRight.has_value()) {
+            return leftLen + resRight.value();
+        }
+        return std::nullopt;
+    }
+
+    auto res = findCharInNode(node->right.get(), c, from - leftLen);
+    if (!res.has_value()) {
+        return std::nullopt;
+    }
+    return leftLen + res.value();
+}
+
+}  // namespace
+
+Rope::Rope() : root(RopeNode::makeLeaf("")) {}
+
+Rope::Rope(std::string_view content)
+    : root(buildFromString(content)) {}
+
+Rope::Rope(std::unique_ptr<RopeNode> r) : root(std::move(r)) {
+    assert(root != nullptr);
+}
+
+Rope::Rope(const Rope& other)
+    : root(cloneNode(other.root.get())) {}
+
+Rope& Rope::operator=(const Rope& other) {
+    if (this != &other) {
+        root = cloneNode(other.root.get());
+    }
+    return *this;
+}
+
+std::size_t Rope::length() const {
+    return RopeNode::nodeLength(root.get());
+}
+
+char Rope::charAt(std::size_t pos) const {
+    if (pos >= length()) {
+        throw std::out_of_range("Rope::charAt: pos out of range");
+    }
+    const RopeNode* node = root.get();
+    std::size_t p = pos;
+    while (!node->isLeaf()) {
+        if (p < node->weight) {
+            node = node->left.get();
+        } else {
+            p -= node->weight;
+            node = node->right.get();
+        }
+    }
+    return node->leaf[p];
+}
+
+std::string Rope::substring(std::size_t begin, std::size_t end) const {
+    if (begin > end || end > length()) {
+        throw std::out_of_range("Rope::substring: invalid range");
+    }
+    std::string result;
+    result.reserve(end - begin);
+    collectRange(root.get(), 0, begin, end, result);
+    return result;
+}
+
+void Rope::insert(std::size_t pos, std::string_view text) {
+    if (pos > length()) {
+        throw std::out_of_range("Rope::insert: pos out of range");
+    }
+    if (text.empty()) {
+        return;
+    }
+    auto [left, right] = splitNode(std::move(root), pos);
+    auto mid = buildFromString(text);
+    root = concat(std::move(left), concat(std::move(mid), std::move(right)));
+}
+
+void Rope::erase(std::size_t begin, std::size_t end) {
+    if (begin > end || end > length()) {
+        throw std::out_of_range("Rope::erase: invalid range");
+    }
+    if (begin == end) {
+        return;
+    }
+    auto [left, rest] = splitNode(std::move(root), begin);
+    auto [mid, right] = splitNode(std::move(rest), end - begin);
+    (void)mid;
+    root = concat(std::move(left), std::move(right));
+}
+
+void Rope::clear() {
+    root = RopeNode::makeLeaf("");
+}
+
+std::string Rope::toString() const {
+    return substring(0, length());
+}
+
+std::optional<std::size_t> Rope::findChar(char c, std::size_t from) const {
+    if (from > length()) {
+        throw std::out_of_range("Rope::findChar: from out of range");
+    }
+    return findCharInNode(root.get(), c, from);
+}
+
+std::size_t Rope::lineCount() const {
+    return RopeNode::nodeNewlineCount(root.get()) + 1;
+}
+
+std::size_t Rope::lineStartPos(std::size_t line) const {
+    const RopeNode* node = root.get();
+    std::size_t offset = 0;
+    std::size_t remainingLine = line;
+
+    while (!node->isLeaf()) {
+        std::size_t leftNewlines = node->lineWeight;
+        std::size_t leftLen = node->weight;
+
+        if (remainingLine <= leftNewlines) {
+            node = node->left.get();
+        } else {
+            remainingLine -= leftNewlines + 1;
+            offset += leftLen + 1;
+            node = node->right.get();
+        }
+    }
+
+    std::size_t leafLine = 0;
+    std::size_t leafPos = 0;
+    while (leafPos < node->leaf.size() && leafLine < remainingLine) {
+        if (node->leaf[leafPos] == '\n') {
+            ++leafLine;
+        }
+        ++leafPos;
+    }
+    return offset + leafPos;
+}
+
+std::pair<std::size_t, std::size_t>
+Rope::posToLineColumn(std::size_t pos) const {
+    if (pos > length()) {
+        throw std::out_of_range("Rope::posToLineColumn: pos out of range");
+    }
+    const RopeNode* node = root.get();
+    std::size_t remaining = pos;
+    std::size_t line = 0;
+
+    while (!node->isLeaf()) {
+        std::size_t leftLen = node->weight;
+        if (remaining <= leftLen) {
+            node = node->left.get();
+        } else {
+            line += node->lineWeight + 1;
+            remaining -= leftLen + 1;
+            node = node->right.get();
+        }
+    }
+
+    std::size_t col = 0;
+    for (std::size_t i = 0; i < remaining && i < node->leaf.size(); ++i) {
+        if (node->leaf[i] == '\n') {
+            ++line;
+            col = 0;
+        } else {
+            ++col;
+        }
+    }
+
+    return {line, col};
+}
+
+std::size_t Rope::lineColumnToPos(std::size_t line, std::size_t column) const {
+    std::size_t lines = lineCount();
+    if (line >= lines) {
+        throw std::out_of_range("Rope::lineColumnToPos: line out of range");
+    }
+
+    std::size_t start = lineStartPos(line);
+    std::size_t end = (line + 1 < lines)
+                          ? lineStartPos(line + 1) - 1
+                          : length();
+    if (column > end - start) {
+        throw std::out_of_range("Rope::lineColumnToPos: column out of range");
+    }
+    return start + column;
+}
+
+std::string Rope::lineAt(std::size_t lineIndex) const {
+    std::size_t lines = lineCount();
+    if (lineIndex >= lines) {
+        throw std::out_of_range("Rope::lineAt: line out of range");
+    }
+    std::size_t start = lineStartPos(lineIndex);
+    std::size_t end = (lineIndex + 1 < lines)
+                          ? lineStartPos(lineIndex + 1) - 1
+                          : length();
+    return substring(start, end);
+}
+
+std::size_t Rope::lineLength(std::size_t lineIndex) const {
+    std::size_t lines = lineCount();
+    if (lineIndex >= lines) {
+        throw std::out_of_range("Rope::lineLength: line out of range");
+    }
+    std::size_t start = lineStartPos(lineIndex);
+    std::size_t end = (lineIndex + 1 < lines)
+                          ? lineStartPos(lineIndex + 1) - 1
+                          : length();
+    return end - start;
+}
+
+std::unique_ptr<RopeNode> Rope::concat(std::unique_ptr<RopeNode> a,
+                                        std::unique_ptr<RopeNode> b) {
+    assert(a != nullptr);
+    assert(b != nullptr);
+
+    std::size_t ha = RopeNode::nodeHeight(a.get());
+    std::size_t hb = RopeNode::nodeHeight(b.get());
+
+    if (ha <= hb + 1 && hb <= ha + 1) {
+        return RopeNode::makeInternal(std::move(a), std::move(b));
+    }
+
+    if (ha > hb) {
+        if (a->isLeaf()) {
+            return RopeNode::makeInternal(std::move(a), std::move(b));
+        }
+        auto newRight = concat(std::move(a->right), std::move(b));
+        return RopeNode::makeInternal(std::move(a->left), std::move(newRight));
+    }
+
+    if (b->isLeaf()) {
+        return RopeNode::makeInternal(std::move(a), std::move(b));
+    }
+    auto newLeft = concat(std::move(a), std::move(b->left));
+    return RopeNode::makeInternal(std::move(newLeft), std::move(b->right));
+}
+
+std::pair<std::unique_ptr<RopeNode>, std::unique_ptr<RopeNode>>
+Rope::splitNode(std::unique_ptr<RopeNode> node, std::size_t pos) {
+    assert(node != nullptr);
+
+    if (node->isLeaf()) {
+        assert(pos <= node->leaf.size());
+        std::string leftStr = node->leaf.substr(0, pos);
+        std::string rightStr = node->leaf.substr(pos);
+        return {RopeNode::makeLeaf(std::move(leftStr)),
+                RopeNode::makeLeaf(std::move(rightStr))};
+    }
+
+    if (pos < node->weight) {
+        auto [leftA, leftB] = splitNode(std::move(node->left), pos);
+        auto right = concat(std::move(leftB), std::move(node->right));
+        return {std::move(leftA), std::move(right)};
+    }
+
+    if (pos == node->weight) {
+        return {std::move(node->left), std::move(node->right)};
+    }
+
+    auto [rightA, rightB] = splitNode(std::move(node->right), pos - node->weight);
+    auto left = concat(std::move(node->left), std::move(rightA));
+    return {std::move(left), std::move(rightB)};
+}
+
+std::unique_ptr<RopeNode> Rope::buildFromString(std::string_view content) {
+    if (content.size() <= LEAF_MAX_SIZE) {
+        return RopeNode::makeLeaf(std::string(content));
+    }
+    std::size_t mid = content.size() / 2;
+    auto left = buildFromString(content.substr(0, mid));
+    auto right = buildFromString(content.substr(mid));
+    return RopeNode::makeInternal(std::move(left), std::move(right));
+}
+
+}
+
+===== FILE: src/cerium/document/rope/Rope.hpp =====
+#ifndef CERIUM_DOCUMENT_ROPE_ROPE_HPP_
+#define CERIUM_DOCUMENT_ROPE_ROPE_HPP_
+
+#include "RopeNode.hpp"
+
+#include <cstddef>
+#include <memory>
+#include <optional>
+#include <string>
+#include <string_view>
+#include <utility>
+
+namespace cerium::document {
+
+class Rope {
+public:
+    Rope();
+    explicit Rope(std::string_view content);
+
+    Rope(const Rope& other);
+    Rope& operator=(const Rope& other);
+    Rope(Rope&& other) noexcept = default;
+    Rope& operator=(Rope&& other) noexcept = default;
+    ~Rope() = default;
+
+    std::size_t length() const;
+    char charAt(std::size_t pos) const;
+    std::string substring(std::size_t begin, std::size_t end) const;
+
+    void insert(std::size_t pos, std::string_view text);
+    void erase(std::size_t begin, std::size_t end);
+    void clear();
+
+    std::string toString() const;
+
+    std::optional<std::size_t> findChar(char c, std::size_t from = 0) const;
+
+    std::size_t lineCount() const;
+    std::string lineAt(std::size_t lineIndex) const;
+    std::size_t lineLength(std::size_t lineIndex) const;
+    std::pair<std::size_t, std::size_t> posToLineColumn(std::size_t pos) const;
+    std::size_t lineColumnToPos(std::size_t line, std::size_t column) const;
+
+private:
+    std::unique_ptr<RopeNode> root;
+
+    Rope(std::unique_ptr<RopeNode> r);
+
+    static std::unique_ptr<RopeNode> buildFromString(std::string_view content);
+    static std::unique_ptr<RopeNode> concat(std::unique_ptr<RopeNode> a,
+                                            std::unique_ptr<RopeNode> b);
+    static std::pair<std::unique_ptr<RopeNode>, std::unique_ptr<RopeNode>>
+        splitNode(std::unique_ptr<RopeNode> node, std::size_t pos);
+
+    std::size_t lineStartPos(std::size_t line) const;
+};
+
+}
+
+#endif
+
+===== FILE: src/cerium/document/rope/RopeNode.cpp =====
+#include "RopeNode.hpp"
+
+#include <algorithm>
+#include <cassert>
+#include <utility>
+
+namespace cerium::document {
+
+RopeNode::RopeNode(std::string text) : leaf(std::move(text)) {
+    weight = leaf.size();
+    lineWeight = static_cast<std::size_t>(
+        std::count(leaf.begin(), leaf.end(), '\n'));
+    height = 1;
+}
+
+bool RopeNode::isLeaf() const noexcept {
+    return !left && !right;
+}
+
+std::unique_ptr<RopeNode> RopeNode::makeLeaf(std::string text) {
+    return std::make_unique<RopeNode>(std::move(text));
+}
+
+std::unique_ptr<RopeNode> RopeNode::makeInternal(std::unique_ptr<RopeNode> l,
+                                                 std::unique_ptr<RopeNode> r) {
+    assert(l != nullptr);
+    assert(r != nullptr);
+
+    auto node = std::make_unique<RopeNode>();
+    node->left = std::move(l);
+    node->right = std::move(r);
+    update(node.get());
+    return node;
+}
+
+std::size_t RopeNode::nodeLength(const RopeNode* node) noexcept {
+    assert(node != nullptr);
+    if (node->isLeaf()) {
+        return node->leaf.size();
+    }
+    return node->weight + nodeLength(node->right.get());
+}
+
+std::size_t RopeNode::nodeNewlineCount(const RopeNode* node) noexcept {
+    assert(node != nullptr);
+    if (node->isLeaf()) {
+        return node->lineWeight;
+    }
+    return node->lineWeight + nodeNewlineCount(node->right.get());
+}
+
+std::size_t RopeNode::nodeHeight(const RopeNode* node) noexcept {
+    assert(node != nullptr);
+    return node->height;
+}
+
+void RopeNode::update(RopeNode* node) noexcept {
+    assert(node != nullptr);
+    assert(!node->isLeaf());
+    node->weight = nodeLength(node->left.get());
+    node->lineWeight = nodeNewlineCount(node->left.get());
+    node->height = 1 + std::max(nodeHeight(node->left.get()),
+                                nodeHeight(node->right.get()));
+}
+
+}
+
+===== FILE: src/cerium/document/rope/RopeNode.hpp =====
+#ifndef CERIUM_DOCUMENT_ROPE_ROPENODE_HPP_
+#define CERIUM_DOCUMENT_ROPE_ROPENODE_HPP_
+
+#include <cstddef>
+#include <memory>
+#include <string>
+
+namespace cerium::document {
+
+struct RopeNode {
+    std::string leaf;
+    std::unique_ptr<RopeNode> left;
+    std::unique_ptr<RopeNode> right;
+    std::size_t weight = 0;
+    std::size_t lineWeight = 0;
+    std::size_t height = 1;
+
+    RopeNode() = default;
+    explicit RopeNode(std::string text);
+
+    bool isLeaf() const noexcept;
+
+    static std::unique_ptr<RopeNode> makeLeaf(std::string text);
+    static std::unique_ptr<RopeNode> makeInternal(std::unique_ptr<RopeNode> l,
+                                                  std::unique_ptr<RopeNode> r);
+
+    static std::size_t nodeLength(const RopeNode* node) noexcept;
+    static std::size_t nodeNewlineCount(const RopeNode* node) noexcept;
+    static std::size_t nodeHeight(const RopeNode* node) noexcept;
+    static void update(RopeNode* node) noexcept;
+};
+
+}
+
+#endif
+
+===== FILE: src/cerium/document/storage/ITextStorage.hpp =====
+#ifndef CERIUM_DOCUMENT_STORAGE_ITEXTSTORAGE_HPP_
+#define CERIUM_DOCUMENT_STORAGE_ITEXTSTORAGE_HPP_
+
+#include <cstddef>
+#include <string>
+#include <string_view>
+#include <utility>
+
+namespace cerium::document {
+
+class ITextStorage {
+public:
+    virtual ~ITextStorage() = default;
+
+    ITextStorage(const ITextStorage&) = delete;
+    ITextStorage& operator=(const ITextStorage&) = delete;
+    ITextStorage(ITextStorage&&) = delete;
+    ITextStorage& operator=(ITextStorage&&) = delete;
+
+    virtual std::size_t length() const = 0;
+    virtual char charAt(std::size_t pos) const = 0;
+    virtual std::string substring(std::size_t begin, std::size_t end) const = 0;
+
+    virtual void insert(std::size_t pos, std::string_view text) = 0;
+    virtual void erase(std::size_t begin, std::size_t end) = 0;
+    virtual void clear() = 0;
+
+    virtual std::size_t lineCount() const = 0;
+    virtual std::string lineAt(std::size_t lineIndex) const = 0;
+    virtual std::size_t lineLength(std::size_t lineIndex) const = 0;
+
+    virtual std::pair<std::size_t, std::size_t> posToLineColumn(std::size_t pos) const = 0;
+    virtual std::size_t lineColumnToPos(std::size_t line, std::size_t column) const = 0;
+
+    virtual std::string toString() const = 0;
+
+protected:
+    ITextStorage() = default;
+};
+
+}
+
+#endif
+
+===== FILE: src/cerium/document/storage/RopeStorage.cpp =====
+#include "RopeStorage.hpp"
+
+#include <stdexcept>
+
+namespace cerium::document {
+
+RopeStorage::RopeStorage() = default;
+
+RopeStorage::RopeStorage(std::string_view content) : rope(content) {}
+
+std::size_t RopeStorage::length() const {
+    return rope.length();
+}
+
+char RopeStorage::charAt(std::size_t pos) const {
+    return rope.charAt(pos);
+}
+
+std::string RopeStorage::substring(std::size_t begin, std::size_t end) const {
+    return rope.substring(begin, end);
+}
+
+void RopeStorage::insert(std::size_t pos, std::string_view text) {
+    rope.insert(pos, text);
+}
+
+void RopeStorage::erase(std::size_t begin, std::size_t end) {
+    rope.erase(begin, end);
+}
+
+void RopeStorage::clear() {
+    rope.clear();
+}
+
+std::size_t RopeStorage::lineCount() const {
+    return rope.lineCount();
+}
+
+std::string RopeStorage::lineAt(std::size_t lineIndex) const {
+    return rope.lineAt(lineIndex);
+}
+
+std::size_t RopeStorage::lineLength(std::size_t lineIndex) const {
+    return rope.lineLength(lineIndex);
+}
+
+std::pair<std::size_t, std::size_t>
+RopeStorage::posToLineColumn(std::size_t pos) const {
+    return rope.posToLineColumn(pos);
+}
+
+std::size_t RopeStorage::lineColumnToPos(std::size_t line, std::size_t column) const {
+    return rope.lineColumnToPos(line, column);
+}
+
+std::string RopeStorage::toString() const {
+    return rope.toString();
+}
+
+}
+
+===== FILE: src/cerium/document/storage/RopeStorage.hpp =====
+#ifndef CERIUM_DOCUMENT_STORAGE_ROPESTORAGE_HPP_
+#define CERIUM_DOCUMENT_STORAGE_ROPESTORAGE_HPP_
+
+#include "ITextStorage.hpp"
+#include "document/rope/Rope.hpp"
+
+#include <cstddef>
+#include <string>
+#include <string_view>
+#include <utility>
+
+namespace cerium::document {
+
+class RopeStorage : public ITextStorage {
+public:
+    RopeStorage();
+    explicit RopeStorage(std::string_view content);
+
+    std::size_t length() const override;
+    char charAt(std::size_t pos) const override;
+    std::string substring(std::size_t begin, std::size_t end) const override;
+
+    void insert(std::size_t pos, std::string_view text) override;
+    void erase(std::size_t begin, std::size_t end) override;
+    void clear() override;
+
+    std::size_t lineCount() const override;
+    std::string lineAt(std::size_t lineIndex) const override;
+    std::size_t lineLength(std::size_t lineIndex) const override;
+
+    std::pair<std::size_t, std::size_t> posToLineColumn(std::size_t pos) const override;
+    std::size_t lineColumnToPos(std::size_t line, std::size_t column) const override;
+
+    std::string toString() const override;
+
+private:
+    Rope rope;
+};
+
+}
+
+#endif
+
+===== FILE: src/cerium/document/storage/VectorStorage.cpp =====
+#include "VectorStorage.hpp"
+
+#include <ranges>
+#include <stdexcept>
+
+namespace cerium::document {
+
+VectorStorage::VectorStorage() {
+    text.emplace_back("");
+    rebuildTotalLength();
+}
+
+VectorStorage::VectorStorage(std::string_view content) {
+    if (content.empty()) {
+        text.emplace_back("");
+    } else {
+        auto lines = content | std::views::split('\n');
+        text = std::ranges::to<std::vector<Line>>(
+            lines | std::views::transform([](auto&& line) {
+                return Line(std::string(line.begin(), line.end()));
+            }));
+    }
+    rebuildCountBefore();
+    rebuildTotalLength();
+}
+
+std::size_t VectorStorage::length() const {
+    return totalLength;
+}
+
+char VectorStorage::charAt(std::size_t pos) const {
+    if (pos >= totalLength) {
+        throw std::out_of_range("VectorStorage::charAt: pos out of range");
+    }
+    std::size_t offset = 0;
+    for (const auto& line : text) {
+        if (pos < offset + line.content.size()) {
+            return line.content[pos - offset];
+        }
+        offset += line.content.size() + 1;
+    }
+    throw std::out_of_range("VectorStorage::charAt: pos out of range");
+}
+
+std::string VectorStorage::substring(std::size_t begin, std::size_t end) const {
+    if (begin > end || end > totalLength) {
+        throw std::out_of_range("VectorStorage::substring: invalid range");
+    }
+    std::string result;
+    result.reserve(end - begin);
+
+    std::size_t pos = 0;
+    for (std::size_t i = 0; i < text.size(); ++i) {
+        const auto& content = text[i].content;
+        std::size_t lineStart = pos;
+        std::size_t lineEnd = lineStart + content.size();
+
+        if (lineEnd >= begin && lineStart < end) {
+            std::size_t from = begin > lineStart ? begin - lineStart : 0;
+            std::size_t to = end < lineEnd ? end - lineStart : content.size();
+            result.append(content, from, to - from);
+        }
+
+        if (i + 1 < text.size() && lineEnd + 1 > begin && lineEnd < end) {
+            result.push_back('\n');
+        }
+
+        pos = lineEnd + 1;
+    }
+    return result;
+}
+
+void VectorStorage::insert(std::size_t pos, std::string_view text_view) {
+    if (pos > totalLength) {
+        throw std::out_of_range("VectorStorage::insert: pos out of range");
+    }
+    if (text_view.empty()) {
+        return;
+    }
+
+    auto [line, column] = posToLineColumn(pos);
+
+    std::string buffer = text[line].content;
+    buffer.insert(column, text_view);
+
+    std::vector<Line> newLines;
+    auto split = buffer | std::views::split('\n');
+    newLines = std::ranges::to<std::vector<Line>>(
+        split | std::views::transform([](auto&& part) {
+            return Line(std::string(part.begin(), part.end()));
+        }));
+
+    text.erase(text.begin() + static_cast<std::ptrdiff_t>(line));
+    text.insert(text.begin() + static_cast<std::ptrdiff_t>(line),
+                newLines.begin(), newLines.end());
+
+    rebuildCountBefore();
+    rebuildTotalLength();
+}
+
+void VectorStorage::erase(std::size_t begin, std::size_t end) {
+    if (begin > end || end > totalLength) {
+        throw std::out_of_range("VectorStorage::erase: invalid range");
+    }
+    if (begin == end) {
+        return;
+    }
+
+    std::string before = substring(0, begin);
+    std::string after = substring(end, totalLength);
+    std::string joined = before + after;
+
+    text.clear();
+    if (joined.empty()) {
+        text.emplace_back("");
+    } else {
+        auto lines = joined | std::views::split('\n');
+        text = std::ranges::to<std::vector<Line>>(
+            lines | std::views::transform([](auto&& line) {
+                return Line(std::string(line.begin(), line.end()));
+            }));
+    }
+
+    rebuildCountBefore();
+    rebuildTotalLength();
+}
+
+void VectorStorage::clear() {
+    text.clear();
+    text.emplace_back("");
+    rebuildCountBefore();
+    rebuildTotalLength();
+}
+
+std::size_t VectorStorage::lineCount() const {
+    return text.size();
+}
+
+std::string VectorStorage::lineAt(std::size_t lineIndex) const {
+    if (lineIndex >= text.size()) {
+        throw std::out_of_range("VectorStorage::lineAt: index out of range");
+    }
+    return text[lineIndex].content;
+}
+
+std::size_t VectorStorage::lineLength(std::size_t lineIndex) const {
+    if (lineIndex >= text.size()) {
+        throw std::out_of_range("VectorStorage::lineLength: index out of range");
+    }
+    return text[lineIndex].content.size();
+}
+
+std::pair<std::size_t, std::size_t>
+VectorStorage::posToLineColumn(std::size_t pos) const {
+    if (pos > totalLength) {
+        throw std::out_of_range("VectorStorage::posToLineColumn: pos out of range");
+    }
+    std::size_t offset = 0;
+    for (std::size_t i = 0; i < text.size(); ++i) {
+        std::size_t lineEnd = offset + text[i].content.size();
+        if (pos <= lineEnd) {
+            return {i, pos - offset};
+        }
+        offset = lineEnd + 1;
+    }
+    return {text.size() - 1, text.back().content.size()};
+}
+
+std::size_t VectorStorage::lineColumnToPos(std::size_t line, std::size_t column) const {
+    if (line >= text.size()) {
+        throw std::out_of_range("VectorStorage::lineColumnToPos: line out of range");
+    }
+    if (column > text[line].content.size()) {
+        throw std::out_of_range("VectorStorage::lineColumnToPos: column out of range");
+    }
+    std::size_t pos = 0;
+    for (std::size_t i = 0; i < line; ++i) {
+        pos += text[i].content.size() + 1;
+    }
+    return pos + column;
+}
+
+std::string VectorStorage::toString() const {
+    std::string result;
+    result.reserve(totalLength);
+    for (std::size_t i = 0; i < text.size(); ++i) {
+        result += text[i].content;
+        if (i + 1 < text.size()) {
+            result += '\n';
+        }
+    }
+    return result;
+}
+
+void VectorStorage::rebuildCountBefore() {
+    std::size_t offset = 0;
+    for (auto& line : text) {
+        line.countBefore = static_cast<int>(offset);
+        offset += line.content.size() + 1;
+    }
+}
+
+void VectorStorage::rebuildTotalLength() {
+    totalLength = 0;
+    for (std::size_t i = 0; i < text.size(); ++i) {
+        totalLength += text[i].content.size();
+        if (i + 1 < text.size()) {
+            totalLength += 1;
+        }
+    }
+}
+
+}
+
+===== FILE: src/cerium/document/storage/VectorStorage.hpp =====
+#ifndef CERIUM_DOCUMENT_STORAGE_VECTORSTORAGE_HPP_
+#define CERIUM_DOCUMENT_STORAGE_VECTORSTORAGE_HPP_
+
+#include "ITextStorage.hpp"
+#include "../line.hpp"
+
+#include <cstddef>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
+
+namespace cerium::document {
+
+class VectorStorage : public ITextStorage {
+public:
+    VectorStorage();
+    explicit VectorStorage(std::string_view content);
+
+    std::size_t length() const override;
+    char charAt(std::size_t pos) const override;
+    std::string substring(std::size_t begin, std::size_t end) const override;
+
+    void insert(std::size_t pos, std::string_view text) override;
+    void erase(std::size_t begin, std::size_t end) override;
+    void clear() override;
+
+    std::size_t lineCount() const override;
+    std::string lineAt(std::size_t lineIndex) const override;
+    std::size_t lineLength(std::size_t lineIndex) const override;
+
+    std::pair<std::size_t, std::size_t> posToLineColumn(std::size_t pos) const override;
+    std::size_t lineColumnToPos(std::size_t line, std::size_t column) const override;
+
+    std::string toString() const override;
+
+private:
+    std::vector<Line> text;
+    std::size_t totalLength = 0;
+
+    void rebuildCountBefore();
+    void rebuildTotalLength();
+};
+
+}
+
+#endif
+
+===== FILE: src/cerium/project/project.cpp =====
+#include "project.hpp"
+#include "../document/text.hpp"
+
+#include <iostream>
+#include <filesystem>
+#include <fstream>
+
+Project::Project(std::string name): name(name), logger(std::make_unique<Logger>(Logging::createLogger("cerium.project.project"))) {}
+
+void Project::openDocument(std::filesystem::path path, Text text, std::string language, bool edit) {
+	documents.insert({ path, std::unique_ptr<Document>(new Document(path, text, language, edit)) });
+	logger->info("Successfully opened document at " + path.string());
+}
+
+void Project::closeDocument(std::filesystem::path path) {
+	documents.erase(path);
+	logger->info("Closed document at " + path.string());
+}
+	
+Document& Project::getDocument(std::filesystem::path path) {
+	auto it = documents.find(path);
+	if (it != documents.end()) {
+		return *(it->second);
+	}
+	logger->error("Invalid document path");
+	throw std::runtime_error("Invalid document path");
+}
+
+void Project::saveDocument(std::filesystem::path path) {
+    std::ofstream doc(path);
+    if (!doc) {
+        logger->warn("Invalid document");
+        return;
+    }
+    Document& document = getDocument(path);
+    doc << document.text.toString();
+    logger->info("Saved document to " + path.string());
+}
+
+void Project::saveDocumentAs(std::filesystem::path old_path, std::filesystem::path new_path) {
+    Document& document = getDocument(old_path);
+    std::ofstream doc(new_path);
+    if (!doc) {
+        logger->error("Invalid document path to save to");
+        throw std::runtime_error("Invalid document path to save to");
+    }
+    document.path = new_path;
+    auto extractedPath = documents.extract(old_path);
+    if (extractedPath.empty()) {
+        logger->error("Couldn't change path of document");
+        throw std::runtime_error("Couldn't change path of document");
+    }
+    extractedPath.key() = new_path;
+    documents.insert(std::move(extractedPath));
+    saveDocument(new_path);
+    logger->info("Saved document to " + new_path.string());
+}
+
+===== FILE: src/cerium/project/project.hpp =====
+#ifndef CERIUM_PROJECT_PROJECT_HPP_
+#define CERIUM_PROJECT_PROJECT_HPP_
+
+#include <string>
+#include <unordered_map>
+#include <memory>
+#include <filesystem>
+
+#include "../document/document.hpp"
+
+#include "../debug/logging/ConsoleLoggerMiddleware.hpp"
+#include "../debug/logging/FileLoggerMiddleware.hpp"
+#include "../debug/logging/Logger.hpp"
+#include "../debug/logging/LoggerConfig.hpp"
+#include "../debug/logging/Logging.hpp"
+
+
+class Project {
+private:
+    std::string name;
+    std::unordered_map<std::filesystem::path, std::unique_ptr<Document>> documents;
+
+    std::unique_ptr<Logger> logger;
+
+public:
+    Project(std::string name);
+
+    void openDocument(std::filesystem::path path, Text text, std::string language = "txt", bool edit = true);
+    void closeDocument(std::filesystem::path path);
+	Document& getDocument(std::filesystem::path path);
+    void saveDocument(std::filesystem::path path);
+    void saveDocumentAs(std::filesystem::path old_path, std::filesystem::path new_path);
+};
+
+#endif //CERIUM_PROJECT_PROJECT_HPP_
+
+
+===== FILE: src/cerium/time/Clock.cpp =====
+#include "Clock.hpp"
+
+#include <chrono>
+#include <ctime>
+#include <iomanip>
+#include <sstream>
+
+std::string Clock::getFormattedCurrentTime() {
+    auto now = std::chrono::system_clock::now();
+    std::time_t currentTime = std::chrono::system_clock::to_time_t(now);
+
+    std::tm localTime;
+
+#ifdef _WIN32
+    localtime_s(&localTime, &currentTime);
+#else
+    localtime_r(&currentTime, &localTime);
+#endif
+
+    std::ostringstream stream;
+    stream << std::put_time(&localTime, "%H:%M:%S");
+
+    return stream.str();
+}
+
+
+===== FILE: src/cerium/time/Clock.hpp =====
+#ifndef CERIUM_TIME_CLOCK_HPP_
+#define CERIUM_TIME_CLOCK_HPP_
+
+#include <string>
+
+class Clock {
+public:
+    static std::string getFormattedCurrentTime();
+};
+
+#endif // CERIUM_TIME_CLOCK_HPP_
+
+
+===== FILE: tests/CMakeLists.txt =====
+include(FetchContent)
+
+FetchContent_Declare(
+    googletest
+    URL https://github.com/google/googletest/archive/refs/tags/v1.17.0.zip
+)
+
+FetchContent_MakeAvailable(googletest)
+
+add_executable(CeriumTests
+    debug/logging/LoggerTests.cpp
+    debug/logging/LoggerFilePoolTests.cpp
+    document/TextHistoryTests.cpp
+    document/RopeTests.cpp
+    document/RopeStorageTests.cpp
+)
+
+target_link_libraries(CeriumTests
+    PRIVATE
+        gtest_main
+        Cerium
+)
+
+===== FILE: tests/debug/logging/LoggerFilePoolTests.cpp =====
+#include <gtest/gtest.h>
+
+#include "../../../src/cerium/debug/logging/LoggerFilePool.hpp"
+
+#include <filesystem>
+
+TEST(LoggerFilePool, SamePathReturnsSameFile) {
+    auto file1 = LoggerFilePool::getFile("test.txt");
+    auto file2 = LoggerFilePool::getFile("test.txt");
+
+    EXPECT_EQ(file1, file2);
+}
+
+TEST(LoggerFilePool, DifferentPathsReturnDifferentFiles) {
+    auto file1 = LoggerFilePool::getFile("test1.txt");
+    auto file2 = LoggerFilePool::getFile("test2.txt");
+
+    EXPECT_NE(file1, file2);
+}
+
+TEST(LoggerFilePool, ReturnedFileIsOpen) {
+    auto file = LoggerFilePool::getFile("test.txt");
+
+    ASSERT_NE(file, nullptr);
+    EXPECT_TRUE(file->is_open());
+}
+
+
+===== FILE: tests/debug/logging/LoggerTests.cpp =====
+#include <gtest/gtest.h>
+
+#include "../../../src/cerium/debug/logging/Logging.hpp"
+#include "TestMiddleware.hpp"
+
+TEST(Logger, IgnoresDebugMessages) {
+    auto middleware = std::make_shared<TestMiddleware>();
+
+    LoggerConfig config;
+    config.middlewares.push_back(middleware);
+
+    Logging::setDefaultConfig(config);
+
+    auto logger = Logging::createLogger("test.logger");
+
+    logger.info("Hello");
+    logger.debug("Test");
+
+    EXPECT_EQ(middleware->calledCount, 1);
+    EXPECT_EQ(middleware->lastLog.message, "Hello");
+}
+
+TEST(Logger, FormattedMessage) {
+    auto middleware = std::make_shared<TestMiddleware>();
+
+    LoggerConfig config;
+    config.middlewares.push_back(middleware);
+
+    Logging::setDefaultConfig(config);
+
+    auto logger = Logging::createLogger("test.logger");
+
+    logger.info("test {}", 57);
+
+    EXPECT_EQ(middleware->calledCount, 1);
+    EXPECT_EQ(middleware->lastLog.message, "test 57");
+}
+
+TEST(Logger, LoggerName) {
+    auto middleware = std::make_shared<TestMiddleware>();
+
+    LoggerConfig config;
+    config.middlewares.push_back(middleware);
+
+    Logging::setDefaultConfig(config);
+
+    auto logger = Logging::createLogger("test.logger");
+
+    logger.warn("Hello");
+
+    EXPECT_EQ(middleware->lastLog.name, "test.logger");
+}
+
+
+===== FILE: tests/debug/logging/TestMiddleware.hpp =====
+#ifndef TESTS_TESTMIDDLEWARE_HPP_
+#define TESTS_TESTMIDDLEWARE_HPP_
+
+#include "../../../src/cerium/debug/logging/LoggerMiddleware.hpp"
+
+class TestMiddleware : public LoggerMiddleware {
+public:
+    int calledCount = 0;
+    Log lastLog;
+
+    void log(const Log& log) override {
+        calledCount++;
+        lastLog = log;
+    }
+};
+
+#endif // TESTS_TESTMIDDLEWARE_HPP_
+
+
+===== FILE: tests/document/RopeStorageTests.cpp =====
+#include <gtest/gtest.h>
+
+#include "../../src/cerium/document/storage/RopeStorage.hpp"
+
+using cerium::document::RopeStorage;
+
+TEST(RopeStorage, Length) {
+    RopeStorage s("Hello");
+    EXPECT_EQ(s.length(), 5u);
+    EXPECT_EQ(s.toString(), "Hello");
+}
+
+TEST(RopeStorage, EmptyLength) {
+    RopeStorage s("");
+    EXPECT_EQ(s.length(), 0u);
+    EXPECT_EQ(s.lineCount(), 1u);
+    EXPECT_EQ(s.lineAt(0), "");
+    EXPECT_EQ(s.lineLength(0), 0u);
+}
+
+TEST(RopeStorage, SingleLineCount) {
+    RopeStorage s("Hello");
+    EXPECT_EQ(s.lineCount(), 1u);
+    EXPECT_EQ(s.lineAt(0), "Hello");
+    EXPECT_EQ(s.lineLength(0), 5u);
+}
+
+TEST(RopeStorage, TwoLines) {
+    RopeStorage s("Hello\nWorld");
+    EXPECT_EQ(s.lineCount(), 2u);
+    EXPECT_EQ(s.lineAt(0), "Hello");
+    EXPECT_EQ(s.lineAt(1), "World");
+    EXPECT_EQ(s.lineLength(0), 5u);
+    EXPECT_EQ(s.lineLength(1), 5u);
+}
+
+TEST(RopeStorage, TrailingNewline) {
+    RopeStorage s("Hello\n");
+    EXPECT_EQ(s.lineCount(), 2u);
+    EXPECT_EQ(s.lineAt(0), "Hello");
+    EXPECT_EQ(s.lineAt(1), "");
+}
+
+TEST(RopeStorage, EmptyLines) {
+    RopeStorage s("\n\n");
+    EXPECT_EQ(s.lineCount(), 3u);
+    EXPECT_EQ(s.lineAt(0), "");
+    EXPECT_EQ(s.lineAt(1), "");
+    EXPECT_EQ(s.lineAt(2), "");
+}
+
+TEST(RopeStorage, MultiLine) {
+    RopeStorage s("line1\nline2\nline3");
+    EXPECT_EQ(s.lineCount(), 3u);
+    EXPECT_EQ(s.lineAt(0), "line1");
+    EXPECT_EQ(s.lineAt(1), "line2");
+    EXPECT_EQ(s.lineAt(2), "line3");
+}
+
+TEST(RopeStorage, LineAtOutOfRange) {
+    RopeStorage s("Hello");
+    EXPECT_THROW(s.lineAt(1), std::out_of_range);
+}
+
+TEST(RopeStorage, PosToLineColumn) {
+    RopeStorage s("Hello\nWorld");
+
+    EXPECT_EQ(s.posToLineColumn(0), std::make_pair(0u, 0u));
+    EXPECT_EQ(s.posToLineColumn(4), std::make_pair(0u, 4u));
+    EXPECT_EQ(s.posToLineColumn(6), std::make_pair(1u, 0u));
+    EXPECT_EQ(s.posToLineColumn(10), std::make_pair(1u, 4u));
+    EXPECT_EQ(s.posToLineColumn(11), std::make_pair(1u, 5u));
+}
+
+TEST(RopeStorage, PosToLineColumnMultiLine) {
+    RopeStorage s("a\nbb\nccc");
+
+    EXPECT_EQ(s.posToLineColumn(0), std::make_pair(0u, 0u));
+    EXPECT_EQ(s.posToLineColumn(2), std::make_pair(1u, 0u));
+    EXPECT_EQ(s.posToLineColumn(3), std::make_pair(1u, 1u));
+    EXPECT_EQ(s.posToLineColumn(5), std::make_pair(2u, 0u));
+    EXPECT_EQ(s.posToLineColumn(8), std::make_pair(2u, 3u));
+}
+
+TEST(RopeStorage, PosToLineColumnOutOfRange) {
+    RopeStorage s("Hello");
+    EXPECT_THROW(s.posToLineColumn(6), std::out_of_range);
+}
+
+TEST(RopeStorage, LineColumnToPos) {
+    RopeStorage s("Hello\nWorld");
+
+    EXPECT_EQ(s.lineColumnToPos(0, 0), 0u);
+    EXPECT_EQ(s.lineColumnToPos(0, 5), 5u);
+    EXPECT_EQ(s.lineColumnToPos(1, 0), 6u);
+    EXPECT_EQ(s.lineColumnToPos(1, 5), 11u);
+}
+
+TEST(RopeStorage, LineColumnToPosMultiLine) {
+    RopeStorage s("a\nbb\nccc");
+
+    EXPECT_EQ(s.lineColumnToPos(0, 0), 0u);
+    EXPECT_EQ(s.lineColumnToPos(1, 0), 2u);
+    EXPECT_EQ(s.lineColumnToPos(2, 0), 5u);
+    EXPECT_EQ(s.lineColumnToPos(2, 3), 8u);
+}
+
+TEST(RopeStorage, LineColumnToPosInvalid) {
+    RopeStorage s("Hello\nWorld");
+    EXPECT_THROW(s.lineColumnToPos(2, 0), std::out_of_range);
+    EXPECT_THROW(s.lineColumnToPos(0, 6), std::out_of_range);
+}
+
+TEST(RopeStorage, RoundTrip) {
+    RopeStorage s("abc\ndefg\nhi");
+
+    for (std::size_t pos = 0; pos <= s.length(); ++pos) {
+        auto [line, col] = s.posToLineColumn(pos);
+        EXPECT_EQ(s.lineColumnToPos(line, col), pos);
+    }
+}
+
+TEST(RopeStorage, InsertUpdatesLines) {
+    RopeStorage s("Hello World");
+    s.insert(5, "\n");
+    EXPECT_EQ(s.lineCount(), 2u);
+    EXPECT_EQ(s.lineAt(0), "Hello");
+    EXPECT_EQ(s.lineAt(1), " World");
+}
+
+TEST(RopeStorage, EraseMergesLines) {
+    RopeStorage s("Hello\nWorld");
+    s.erase(5, 6);
+    EXPECT_EQ(s.lineCount(), 1u);
+    EXPECT_EQ(s.lineAt(0), "HelloWorld");
+}
+
+===== FILE: tests/document/RopeTests.cpp =====
+#include <gtest/gtest.h>
+
+#include "../../src/cerium/document/rope/Rope.hpp"
+
+using cerium::document::Rope;
+
+TEST(Rope, ConstructFromString) {
+    Rope r("Hello");
+    EXPECT_EQ(r.length(), 5u);
+    EXPECT_EQ(r.toString(), "Hello");
+}
+
+TEST(Rope, EmptyRope) {
+    Rope r;
+    EXPECT_EQ(r.length(), 0u);
+    EXPECT_EQ(r.toString(), "");
+    EXPECT_THROW(r.charAt(0), std::out_of_range);
+}
+
+TEST(Rope, CharAt) {
+    Rope r("Hello");
+    EXPECT_EQ(r.charAt(0), 'H');
+    EXPECT_EQ(r.charAt(4), 'o');
+}
+
+TEST(Rope, CharAtOutOfRange) {
+    Rope r("Hello");
+    EXPECT_THROW(r.charAt(5), std::out_of_range);
+}
+
+TEST(Rope, Substring) {
+    Rope r("Hello World");
+    EXPECT_EQ(r.substring(0, 5), "Hello");
+    EXPECT_EQ(r.substring(6, 11), "World");
+    EXPECT_EQ(r.substring(0, 11), "Hello World");
+    EXPECT_EQ(r.substring(5, 5), "");
+}
+
+TEST(Rope, SubstringInvalid) {
+    Rope r("Hello");
+    EXPECT_THROW(r.substring(3, 2), std::out_of_range);
+    EXPECT_THROW(r.substring(0, 6), std::out_of_range);
+}
+
+TEST(Rope, MultiLine) {
+    Rope r("line1\nline2\nline3");
+    EXPECT_EQ(r.length(), 17u);
+    EXPECT_EQ(r.toString(), "line1\nline2\nline3");
+}
+
+TEST(Rope, Copy) {
+    Rope a("Hello");
+    Rope b = a;
+    EXPECT_EQ(b.toString(), "Hello");
+    b.insert(0, "X");
+    EXPECT_EQ(b.toString(), "XHello");
+    EXPECT_EQ(a.toString(), "Hello");
+}
+
+TEST(Rope, InsertAtBeginning) {
+    Rope r("World");
+    r.insert(0, "Hello ");
+    EXPECT_EQ(r.toString(), "Hello World");
+    EXPECT_EQ(r.length(), 11u);
+}
+
+TEST(Rope, InsertAtEnd) {
+    Rope r("Hello");
+    r.insert(5, " World");
+    EXPECT_EQ(r.toString(), "Hello World");
+}
+
+TEST(Rope, InsertInMiddle) {
+    Rope r("HelloWorld");
+    r.insert(5, " ");
+    EXPECT_EQ(r.toString(), "Hello World");
+}
+
+TEST(Rope, InsertEmpty) {
+    Rope r("Hello");
+    r.insert(2, "");
+    EXPECT_EQ(r.toString(), "Hello");
+}
+
+TEST(Rope, InsertInvalid) {
+    Rope r("Hello");
+    EXPECT_THROW(r.insert(6, "X"), std::out_of_range);
+}
+
+TEST(Rope, EraseBeginning) {
+    Rope r("Hello World");
+    r.erase(0, 6);
+    EXPECT_EQ(r.toString(), "World");
+}
+
+TEST(Rope, EraseEnd) {
+    Rope r("Hello World");
+    r.erase(5, 11);
+    EXPECT_EQ(r.toString(), "Hello");
+}
+
+TEST(Rope, EraseMiddle) {
+    Rope r("Hello World");
+    r.erase(5, 6);
+    EXPECT_EQ(r.toString(), "HelloWorld");
+}
+
+TEST(Rope, EraseAll) {
+    Rope r("Hello");
+    r.erase(0, 5);
+    EXPECT_EQ(r.length(), 0u);
+    EXPECT_EQ(r.toString(), "");
+}
+
+TEST(Rope, EraseEmptyRange) {
+    Rope r("Hello");
+    r.erase(2, 2);
+    EXPECT_EQ(r.toString(), "Hello");
+}
+
+TEST(Rope, EraseInvalid) {
+    Rope r("Hello");
+    EXPECT_THROW(r.erase(3, 2), std::out_of_range);
+    EXPECT_THROW(r.erase(0, 6), std::out_of_range);
+}
+
+TEST(Rope, Clear) {
+    Rope r("Hello");
+    r.clear();
+    EXPECT_EQ(r.length(), 0u);
+    EXPECT_EQ(r.toString(), "");
+}
+
+TEST(Rope, ManyInserts) {
+    Rope r("");
+    for (int i = 0; i < 100; ++i) {
+        r.insert(r.length(), "a");
+    }
+    EXPECT_EQ(r.length(), 100u);
+    EXPECT_EQ(r.toString(), std::string(100, 'a'));
+}
+
+TEST(Rope, LargeString) {
+    std::string big(5000, 'x');
+    Rope r(big);
+    EXPECT_EQ(r.length(), 5000u);
+    EXPECT_EQ(r.toString(), big);
+
+    r.insert(2500, "YYY");
+    EXPECT_EQ(r.length(), 5003u);
+    EXPECT_EQ(r.charAt(2500), 'Y');
+    EXPECT_EQ(r.charAt(2503), 'x');
+
+    r.erase(2500, 2503);
+    EXPECT_EQ(r.toString(), big);
+}
+
+TEST(Rope, ManyInsertsBalanced) {
+    Rope r("");
+    for (int i = 0; i < 10000; ++i) {
+        r.insert(r.length(), "a");
+    }
+    EXPECT_EQ(r.length(), 10000u);
+    EXPECT_EQ(r.charAt(0), 'a');
+    EXPECT_EQ(r.charAt(9999), 'a');
+}
+
+===== FILE: tests/document/TextHistoryTests.cpp =====
+#include "../../src/cerium/document/TextHistory.hpp"
+
+#include <gtest/gtest.h>
+
+TEST(TextHistory, UndoInsert) {
+    Text text("Hello");
+    TextHistory history;
+
+    text.paste(" World", 5, 0);
+    history.submitInsert(0, 5, " World");
+
+    ASSERT_EQ(text.getLine(0), "Hello World");
+
+    history.undo(text);
+
+    EXPECT_EQ(text.getLine(0), "Hello");
+}
+
+TEST(TextHistory, RedoInsert) {
+    Text text("Hello");
+    TextHistory history;
+
+    text.paste(" World", 5, 0);
+    history.submitInsert(0, 5, " World");
+
+    history.undo(text);
+    ASSERT_EQ(text.getLine(0), "Hello");
+
+    history.redo(text);
+
+    EXPECT_EQ(text.getLine(0), "Hello World");
+}
+
+TEST(TextHistory, TransactionIsUndoneAsOneOperation) {
+    Text text("Hello");
+    TextHistory history;
+
+    TextHistory::Transaction transaction;
+
+    text.paste(" World", 5, 0);
+    transaction.pushInsert(0, 5, " World");
+
+    text.paste("!", 11, 0);
+    transaction.pushInsert(0, 11, "!");
+
+    history.submit(transaction);
+
+    ASSERT_EQ(text.getLine(0), "Hello World!");
+
+    history.undo(text);
+
+    EXPECT_EQ(text.getLine(0), "Hello");
+}
+
+TEST(TextHistory, TransactionIsRedoneAsOneOperation) {
+    Text text("Hello");
+    TextHistory history;
+
+    TextHistory::Transaction transaction;
+
+    text.paste(" World", 5, 0);
+    transaction.pushInsert(0, 5, " World");
+
+    text.paste("!", 11, 0);
+    transaction.pushInsert(0, 11, "!");
+
+    history.submit(transaction);
+
+    history.undo(text);
+    ASSERT_EQ(text.getLine(0), "Hello");
+
+    history.redo(text);
+
+    EXPECT_EQ(text.getLine(0), "Hello World!");
+}
+
+TEST(TextHistory, CannotUndoInitially) {
+    Text text("Hello");
+    TextHistory history;
+
+    EXPECT_FALSE(history.canUndo());
+    EXPECT_FALSE(history.canRedo());
+}
+
+TEST(TextHistory, CannotRedoAfterNewChange) {
+    Text text("Hello");
+    TextHistory history;
+
+    text.paste(" World", 5, 0);
+    history.submitInsert(0, 5, " World");
+
+    history.undo(text);
+
+    ASSERT_TRUE(history.canRedo());
+
+    text.paste("!", 5, 0);
+    history.submitInsert(0, 5, "!");
+
+    EXPECT_FALSE(history.canRedo());
+}
+

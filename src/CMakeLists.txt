@@ -15,6 +15,11 @@ target_sources(Cerium
         cerium/time/Clock.cpp
         cerium/document/text.cpp
         cerium/document/TextHistory.cpp
+        cerium/document/line.cpp
+        cerium/document/storage/VectorStorage.cpp
+        cerium/document/storage/RopeStorage.cpp
+        cerium/document/rope/Rope.cpp
+        cerium/document/rope/RopeNode.cpp
 )
 
 target_include_directories(Cerium
@@ -42,5 +47,6 @@ else()
         -Wextra
         -Wpedantic
         -Werror
+        -Wno-error=reorder
     )
 endif()
