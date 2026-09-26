@@ -20,12 +20,15 @@ VirtualFilesystem::VirtualFilesystem()
 	platform = platformDetection();
 	if (platform == Platform::Windows) {
 		fs = std::make_unique<WindowsFilesystem>();
+		coreBasePath = {"C://"};
 	}
 	else if (platform == Platform::MacOS) {
 		fs = std::make_unique<MacOSFilesystem>();
+		coreBasePath = {"/"}
 	}
 	else if (platform == Platform::Linux) {
 		fs = std::make_unique<LinuxFilesystem>();
+		coreBasePath = {"/"};
 	}
 	else {
 		throw std::runtime_error("Unsupported platform");

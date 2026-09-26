@@ -23,7 +23,8 @@ private:
 	Platform platform;
 	std::unique_ptr<Filesystem> fs;
 
-
+	std::vector<std::string> coreBasePath;
+	std::vector<std::string> projectBasePath;
 
 	Platform platformDetection();
 public:
