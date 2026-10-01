@@ -5,10 +5,20 @@
 #include <cctype>
 #include <stdexcept>
 
+void WindowsFileststem::bannedSymbolDetect(std::string currentCharacter) {
+	bannedSymbols = {"<", ">", ":", "\"", "|", "*", "?", "/"};
+	for (size_t i = 0; i < bannedSymbolDetect.size(); ++i) {
+		if currentCharacter == bannedSymbols[i]{
+			return true
+		}
+	}
+	return false
+}
+
 std::string WindowsFilesystem::resolve(std::vector<std::string> path) {
 	std::string result = "";
 	for (size_t i = 0; i < path.size(); ++i) {
-		if (path[i].contains("<") || path[i].contains(">") || path[i].contains(":") || path[i].contains("\"") || path[i].contains("|") || path[i].contains("?") || path[i].contains("*") || path[i].contains("/")) {
+		if (bannedSymbolDetect(path[i]) {
 			throw std::invalid_argument("Invalid character in path: " + result + path[i]);
 		}
 		result += path[i];

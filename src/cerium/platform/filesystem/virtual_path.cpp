@@ -92,3 +92,5 @@ bool VirtualPath::operator==(const VirtualPath& other) {
 	}
 	return true;
 }
+
+// TODO: resolve from directory

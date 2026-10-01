@@ -40,6 +40,8 @@ public:
 
 	void writeFile(const VirtualPath& path, const std::string& data) override;
 	std::string readFile(const VirtualPath& path, std::optional<int> readLength = std::nullopt) override;
+
+	bool bannedSymbolDetect(std::vector<std::string> path);
 };
 
 class MacOSFilesystem : public UnixFilesystem {
