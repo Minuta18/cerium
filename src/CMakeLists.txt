@@ -1,4 +1,6 @@
-add_library(Cerium)
+add_library(Cerium
+        cerium/graphics/RmlOpenGLRenderer.cpp
+        cerium/graphics/RmlOpenGLRenderer.hpp)
 
 target_sources(Cerium
     PRIVATE
